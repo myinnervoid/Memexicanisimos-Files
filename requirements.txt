@@ -1,0 +1,4 @@
+# Memexicanisimos Files v1.0 - Dependencias Python
+Pillow>=10.0.0
+mutagen>=1.47.0
+pyudev>=0.24.0

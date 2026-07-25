@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memexicanisimos Files — Gestión, Clonación y Respaldo de Archivos</title>
+    <meta name="description" content="Organiza, clona, respalda y renombra tus archivos con un asistente gráfico intuitivo de 5 pasos para Linux, Windows y macOS.">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #F4F6FF;
+            --panel-bg: #EAF0F8;
+            --accent: #0066CC;
+            --accent-hover: #004999;
+            --text-main: #2C3E50;
+            --text-sub: #566573;
+            --header-bg: #D6E4F0;
+            --card-bg: #FFFFFF;
+            --shadow: 0 10px 30px rgba(44, 62, 80, 0.08);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(214, 228, 240, 0.85);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(174, 214, 241, 0.5);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .logo img {
+            width: 36px;
+            height: 36px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+
+        /* Hero Section */
+        .hero {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: 3rem;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+            color: #1A252F;
+        }
+
+        .hero-text h1 span {
+            color: var(--accent);
+            background: linear-gradient(135deg, #0066CC, #3498DB);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-text p {
+            font-size: 1.2rem;
+            color: var(--text-sub);
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.9rem 1.8rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #E2E8F0;
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background-color: #CBD5E1;
+            transform: translateY(-2px);
+        }
+
+        .hero-image {
+            position: relative;
+        }
+
+        .hero-image img {
+            width: 100%;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 4px solid white;
+            transition: transform 0.3s;
+        }
+
+        .hero-image img:hover {
+            transform: scale(1.02);
+        }
+
+        /* Download Section */
+        .download-section {
+            background: white;
+            max-width: 1000px;
+            margin: 4rem auto;
+            padding: 3rem 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .download-section h2 {
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        .download-section p {
+            color: var(--text-sub);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .download-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Features Section */
+        .features {
+            background-color: #EBF3FA;
+            padding: 5rem 2rem;
+            border-radius: 40px 40px 0 0;
+        }
+
+        .section-title {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 3.5rem;
+        }
+
+        .section-title h2 {
+            font-size: 2.2rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .features-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            background-color: #D6E4F0;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .feature-card p {
+            color: var(--text-sub);
+            font-size: 0.98rem;
+        }
+
+        /* Screenshots Gallery */
+        .gallery {
+            max-width: 1200px;
+            margin: 5rem auto;
+            padding: 0 2rem;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .gallery-item {
+            background: white;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            display: block;
+        }
+
+        .gallery-caption {
+            padding: 1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Install Code Box */
+        .install {
+            max-width: 800px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+            text-align: center;
+        }
+
+        .code-box {
+            background: #1A252F;
+            color: #A3E635;
+            padding: 1.5rem 2rem;
+            border-radius: var(--radius);
+            font-family: monospace;
+            text-align: left;
+            overflow-x: auto;
+            margin-top: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        /* Footer */
+        footer {
+            background: #1A252F;
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-top: 5rem;
+        }
+
+        footer a {
+            color: #7DACE4;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <header>
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <img src="icon/icon.png" alt="Memexicanisimos Files Icon">
+                Memexicanisimos Files
+            </a>
+            <ul class="nav-links">
+                <li><a href="#descarga">Descarga</a></li>
+                <li><a href="#caracteristicas">Características</a></li>
+                <li><a href="#capturas">Capturas</a></li>
+                <li><a href="#instalacion">Compilación</a></li>
+                <li><a href="https://github.com/myinnervoid/Memexicanisimos-Files" target="_blank"><i class="fab fa-github"></i> GitHub</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-text">
+            <h1>Organiza, Clona y Respalda <span>tus Archivos en Linux</span></h1>
+            <p>Memexicanisimos Files es la herramienta definitiva con asistente de 5 pasos para mantener tus directorios impecables, crear copias de seguridad incrementales y revertir cambios sin riesgo.</p>
+            <div class="cta-buttons">
+                <a href="#descarga" class="btn btn-primary"><i class="fas fa-download"></i> Descarga Rápida</a>
+                <a href="https://github.com/myinnervoid/Memexicanisimos-Files" class="btn btn-secondary" target="_blank"><i class="fab fa-github"></i> Código Fuente</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="screenshots/screenshot1.png" alt="Memexicanisimos Files Interface">
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section class="download-section" id="descarga">
+        <h2>📦 Descarga Rápida</h2>
+        <p>Para Linux (x86_64) – Solo descarga, descomprime y ejecuta sin necesidad de instalar dependencias:</p>
+
+        <div class="download-buttons">
+            <a href="https://github.com/myinnervoid/Memexicanisimos-Files/releases/download/v1.0/memexicanisimos-files-linux-x86_64.tar.gz" class="btn btn-primary">
+                <i class="fas fa-file-archive"></i> Descargar .tar.gz (Linux x86_64)
+            </a>
+            <a href="https://github.com/myinnervoid/Memexicanisimos-Files/releases/download/v1.0/memexicanisimos-files-linux.zip" class="btn btn-secondary">
+                <i class="fas fa-file-zipper"></i> Descargar .zip (Linux)
+            </a>
+        </div>
+        <p style="margin-top: 15px; font-size: 0.95rem; color: var(--text-sub);">
+            Para usuarios en <strong>Windows</strong> o <strong>macOS</strong>, clona el repositorio y ejecuta el script automático de compilación (<code>build_windows.bat</code> o <code>./build_unix.sh</code>).
+        </p>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="caracteristicas">
+        <div class="section-title">
+            <h2>Potencia y Simplicidad en 5 Pasos</h2>
+            <p>Diseñado especialmente para resolver problemas comunes de almacenamiento en la comunidad Linux.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-bullseye"></i></div>
+                <h3>Análisis Inteligente de Destino</h3>
+                <p>Detecta automáticamente la estructura de carpetas existente (por fecha, extensión o letra) para evitar carpetas duplicadas.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-undo-alt"></i></div>
+                <h3>Sistema Undo con Registros JSONL</h3>
+                <p>Revierte cualquier movimiento o copia fácilmente. Incluye modo simulación (Dry-Run) e historial de operaciones.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-music"></i></div>
+                <h3>Renombrado con Metadatos de Audio</h3>
+                <p>Usa placeholders inteligentes como <code>{artista}</code>, <code>{album}</code>, <code>{titulo}</code>, <code>{ano}</code> e incluye opción para limpiar metadatos sensibles.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-clone"></i></div>
+                <h3>Clonación Incremental y Discos</h3>
+                <p>Realiza backups incrementales de carpetas personales y clonación de discos a nivel de bloque con <code>ddrescue</code> y verificación de checksum MD5.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-camera"></i></div>
+                <h3>Importador Multimedia</h3>
+                <p>Conecta tu teléfono Android (MTP), cámara fotográfica (PTP) o pendrive y transfiere tus archivos organizadamente.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-palette"></i></div>
+                <h3>Estilo Pastel & Perfiles</h3>
+                <p>Interfaz moderna con paleta de colores suaves Tkinter y sistema de perfiles para guardar configuraciones frecuentes.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Gallery -->
+    <section class="gallery" id="capturas">
+        <div class="section-title">
+            <h2>Capturas de Pantalla</h2>
+            <p>Conoce la interfaz gráfica clara y moderna de Memexicanisimos Files.</p>
+        </div>
+
+        <div class="gallery-grid">
+            <div class="gallery-item">
+                <img src="screenshots/screenshot1.png" alt="Paso 1 Selección">
+                <div class="gallery-caption">Paso 1: Selección de Carpetas y Dispositivos</div>
+            </div>
+            <div class="gallery-item">
+                <img src="screenshots/screenshot2.png" alt="Paso 3 Estructura">
+                <div class="gallery-caption">Paso 3: Estructura de Organización y Renombrado</div>
+            </div>
+            <div class="gallery-item">
+                <img src="screenshots/screenshot3.png" alt="Paso 5 Respaldo">
+                <div class="gallery-caption">Paso 5: Respaldo y Clonación Avanzada</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Install / Build Code Box -->
+    <section class="install" id="instalacion">
+        <div class="section-title">
+            <h2>Compilar desde el Código Fuente</h2>
+        </div>
+
+        <div class="code-box">
+            # 1. Clonar el repositorio<br>
+            git clone https://github.com/myinnervoid/Memexicanisimos-Files.git<br>
+            cd Memexicanisimos-Files<br><br>
+            # 2. Ejecutar el script según tu Sistema Operativo:<br>
+            # En Windows:<br>
+            build_windows.bat<br><br>
+            # En Linux / macOS:<br>
+            ./build_unix.sh
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Memexicanisimos. Distribuido bajo Licencia MIT.</p>
+        <p>Visita el proyecto en <a href="https://github.com/myinnervoid/Memexicanisimos-Files" target="_blank">GitHub</a></p>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Python temporales
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos de PyInstaller / Build pesados
+build/
+dist/memexicanisimos-files
+dist/OrganizadorArchivos*
+dist/organizador_archivos*
+*.spec
+
+# Entornos virtuales
+venv/
+.venv/
+
+# Backup temporales
+backup_v1/
