@@ -1,37 +1,47 @@
 # 📁 Memexicanisimos Files v1.0
 
-> **Memexicanisimos Files** – Organiza, clona, respalda y renombra tus archivos con un asistente paso a paso.
+> **Memexicanisimos Files** – Organiza, clona, respalda y renombra tus archivos con un asistente gráfico de 5 pasos para Linux, Windows y macOS.
 > Parte del ecosistema de software open-source **Memexicanisimos**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-brightgreen.svg)](https://python.org)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-orange.svg)](#)
+[![Releases](https://img.shields.io/badge/release-v1.0-blue.svg)](https://github.com/myinnervoid/Memexicanisimos-Files/releases/tag/1.0)
 
 ---
 
-## 📦 Descarga directa (Linux)
+## 🚀 🐧 Descarga Directa para Linux (Opción Recomendada)
 
-Puedes descargar el binario ya compilado para Linux x86_64 desde [GitHub Releases](https://github.com/myinnervoid/Memexicanisimos-Files/releases).
+Si utilizas Linux (x86_64), **no necesitas instalar Python ni compilar nada**. El ejecutable ya contiene todo lo necesario para funcionar inmediatamente.
+
+### Pasos rápidos (3 pasos):
+
+1. **Descarga** el paquete comprimido desde [GitHub Releases v1.0](https://github.com/myinnervoid/Memexicanisimos-Files/releases/tag/1.0):
+   - 📦 [memexicanisimos-files-linux-x86_64.tar.gz](https://github.com/myinnervoid/Memexicanisimos-Files/releases/download/1.0/memexicanisimos-files-linux-x86_64.tar.gz)
+   - 📦 [memexicanisimos-files-linux.zip](https://github.com/myinnervoid/Memexicanisimos-Files/releases/download/1.0/memexicanisimos-files-linux.zip)
+
+2. **Descomprime** el archivo descargado en tu carpeta favorita.
+
+3. **Abre una terminal** en esa carpeta y ejecuta:
 
 ```bash
-# Descargar y ejecutar (.tar.gz)
-wget https://github.com/myinnervoid/Memexicanisimos-Files/releases/download/v1.0/memexicanisimos-files-linux-x86_64.tar.gz
-tar -xzf memexicanisimos-files-linux-x86_64.tar.gz
+# Otorgar permisos de ejecución
+chmod +x memexicanisimos-files
+
+# Iniciar la aplicación
 ./memexicanisimos-files
 ```
 
-O si prefieres el formato ZIP:
+💡 **Tip Pro**: Para poder ejecutar `memexicanisimos-files` desde cualquier terminal sin escribir la ruta, muévelo a `/usr/local/bin/`:
 ```bash
-unzip memexicanisimos-files-linux.zip
-chmod +x memexicanisimos-files
-./memexicanisimos-files
+sudo mv memexicanisimos-files /usr/local/bin/
 ```
 
 ---
 
 ## 🌟 Características Principales
 
-- 🎯 **Análisis Inteligente de Destino**: Detecta si la carpeta de destino ya cuenta con estructuras organizativas (`YYYY/MM`, extensión o por letra) para integrar archivos sin duplicar carpetas.
+- 🎯 **Análisis Inteligente de Destino**: Detecta automáticamente si la carpeta de destino ya cuenta con estructuras organizativas (`YYYY/MM`, extensión o por letra) para integrar archivos sin duplicar carpetas.
 - ↩️ **Sistema Undo / Deshacer**: Revierte operaciones con registro atómico en formato **JSON Lines** (`~/.organizador_undo.jsonl`), soporte para simulación **Dry-Run** e historial de operaciones.
 - 📂 **Organización Flexible por 5 Criterios**:
   - Por **Fecha** (EXIF, Regex en nombre, o fecha del sistema `ctime`/`mtime`).
@@ -50,48 +60,81 @@ chmod +x memexicanisimos-files
 
 ---
 
-## 🛠️ Compilar desde el código fuente (Windows, macOS, Linux)
+## 🛠️ Compilación desde el Código Fuente (Multiplataforma)
 
-Si prefieres compilar tú mismo para cualquier sistema operativo:
+Si prefieres compilar la aplicación tú mismo o estás en **Windows** o **macOS**, puedes utilizar los scripts automáticos incluidos en el proyecto.
 
-1. Clona el repositorio:
+### 📋 Requisitos Previos Generales
+- Tener instalado **Python 3.8** o superior ([python.org](https://www.python.org/downloads/)).
+- Tener instalado **Git** ([git-scm.com](https://git-scm.com/)).
+
+---
+
+### 🪟 Instalar y Compilar en Windows
+
+1. Abre la consola de comandos (**CMD**) o **PowerShell** y clona el repositorio:
+```cmd
+git clone https://github.com/myinnervoid/Memexicanisimos-Files.git
+cd Memexicanisimos-Files
+```
+
+2. Ejecuta el script automático de compilación:
+```cmd
+build_windows.bat
+```
+
+3. ¡Listo! El ejecutable `.exe` se generará en la carpeta `dist\memexicanisimos-files.exe`.
+
+---
+
+### 🍎 Instalar y Compilar en macOS
+
+1. Abre la **Terminal** y clona el repositorio:
 ```bash
 git clone https://github.com/myinnervoid/Memexicanisimos-Files.git
 cd Memexicanisimos-Files
 ```
 
-2. Ejecuta el script según tu sistema:
-- **Windows**: Ejecuta `build_windows.bat` (o haz doble clic sobre él).
-- **Linux / macOS**: Ejecuta `./build_unix.sh`.
+2. Otorga permisos de ejecución al script y compila:
+```bash
+chmod +x build_unix.sh
+./build_unix.sh
+```
 
-El ejecutable binario se generará automáticamente en la carpeta `dist/`.
+3. El binario ejecutable estará listo en la carpeta `dist/memexicanisimos-files`.
 
 ---
 
-## 🔧 Solución de Problemas (Troubleshooting)
+### 🐧 Instalar y Compilar en Linux (Opcional)
 
-### Error: "Failed to load shared library"
-En Linux, si la distribución es muy ligera, puede faltar alguna biblioteca gráfica del sistema. Instala los paquetes necesarios:
+*(Nota: Te recomendamos usar la [Descarga Directa](#-descarga-directa-para-linux-opción-recomendada) que no requiere compilación).*
 
+1. Clona el repositorio e ingresa a la carpeta:
 ```bash
-# Debian / Ubuntu
-sudo apt install python3-tk python3-pil python3-pil.imagetk
-
-# Fedora
-sudo dnf install python3-tkinter python3-pillow
-
-# Arch Linux
-sudo pacman -S tk pillow
+git clone https://github.com/myinnervoid/Memexicanisimos-Files.git
+cd Memexicanisimos-Files
 ```
 
-### Error: "ModuleNotFoundError"
-Asegúrate de tener todas las dependencias Python instaladas:
+2. Ejecuta el script de compilación Unix:
 ```bash
-pip install -r requirements.txt
+chmod +x build_unix.sh
+./build_unix.sh
 ```
 
-### El binario no se ejecuta en otra distribución Linux
-El binario compilado con PyInstaller empaqueta Python y las dependencias de Python, pero puede requerir bibliotecas compartidas del sistema (como `glibc`, `libtcl`, `libtk`). Si encuentras errores de bibliotecas faltantes en distribuciones antiguas o minimalistas, instala los paquetes del sistema indicados arriba o ejecuta la herramienta mediante script usando `./build_unix.sh`.
+3. El ejecutable compilado estará disponible en `dist/memexicanisimos-files`.
+
+---
+
+## 🔧 Solución de Problemas Frecuentes (Troubleshooting)
+
+| Error / Problema | Causa Probable | Solución Paso a Paso |
+|---|---|---|
+| `'python' no se reconoce como un comando interno` | Python no está agregado al PATH de Windows | Reinstala Python desde [python.org](https://www.python.org) asegurándote de marcar la casilla **"Add python.exe to PATH"**. |
+| `pip: command not found` | `pip` no está instalado en el sistema Linux | Instálalo usando el gestor de paquetes:<br>`sudo apt install python3-pip` (Debian/Ubuntu)<br>`sudo dnf install python3-pip` (Fedora) |
+| `Permission denied` al ejecutar `./build_unix.sh` | El script no tiene permisos de ejecución | Otorga permisos ejecutando:<br>`chmod +x build_unix.sh` |
+| `ModuleNotFoundError: No module named 'tkinter'` | Falta la interfaz gráfica Tkinter en Linux | Instala Tkinter en el sistema:<br>`sudo apt install python3-tk` (Debian/Ubuntu)<br>`sudo dnf install python3-tkinter` (Fedora)<br>`sudo pacman -S tk` (Arch Linux) |
+| `ModuleNotFoundError: No module named 'PIL'` o `mutagen` | Falta alguna dependencia Python | Asegúrate de instalar los requerimientos ejecutando:<br>`pip install -r requirements.txt` |
+| `Failed to load shared library` al abrir binario | La distribución Linux no posee librerías gráficas estándar | Instala las librerías base:<br>`sudo apt install python3-pil python3-pil.imagetk` |
 
 ---
 
@@ -110,4 +153,4 @@ Este proyecto está distribuido bajo la licencia **MIT**. Consulta el archivo `L
 
 ## 💙 Ecosistema Memexicanisimos
 
-**Memexicanisimos Files** es parte de la suite de herramientas open-source desarrolladas para empoderar a la comunidad Linux.
+**Memexicanisimos Files** es parte de la suite de herramientas open-source desarrolladas para empoderar a la comunidad Linux y facilitar la gestión digital.
