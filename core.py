@@ -1280,7 +1280,7 @@ def clonar_carpeta(
     origen: Union[str, Path],
     destino: Union[str, Path],
     incremental: bool = False,
-    callback_progreso: Optional[Callable[[int, int, str], None]] = None,
+    callback_progreso: Optional[Callable[[int, int, str, int, int], None]] = None,
     cancelar_flag: Optional[Callable[[], bool]] = None
 ) -> str:
     """
@@ -1295,6 +1295,10 @@ def clonar_carpeta(
 
     archivos = [p for p in p_orig.rglob('*') if p.is_file()]
     total = len(archivos)
+
+    bytes_totales = sum(p.stat().st_size for p in archivos)
+    bytes_copiados = 0
+
     exitos = 0
     omitidos = 0
     errores = 0
@@ -1303,24 +1307,44 @@ def clonar_carpeta(
         if cancelar_flag and cancelar_flag():
             return f"Clonacion cancelada por el usuario ({i-1}/{total} procesados)."
 
-        if callback_progreso:
-            callback_progreso(i, total, arch.name)
-
-        rel = arch.relative_to(p_orig)
-        dest_arch = p_dest / rel
-
         try:
+            st_o = arch.stat()
+            file_size = st_o.st_size
+
+            if callback_progreso:
+                callback_progreso(i, total, arch.name, bytes_copiados, bytes_totales)
+
+            rel = arch.relative_to(p_orig)
+            dest_arch = p_dest / rel
             dest_arch.parent.mkdir(parents=True, exist_ok=True)
 
             if incremental and dest_arch.exists():
-                # Comparar mtime y tamaño
-                st_o = arch.stat()
                 st_d = dest_arch.stat()
                 if st_o.st_size == st_d.st_size and abs(st_o.st_mtime - st_d.st_mtime) < 1.0:
                     omitidos += 1
+                    bytes_copiados += file_size
+                    if callback_progreso:
+                        callback_progreso(i, total, arch.name, bytes_copiados, bytes_totales)
                     continue
 
-            shutil.copy2(str(arch), str(dest_arch))
+            # Copy in chunks to report progress
+            with open(arch, 'rb') as fsrc, open(dest_arch, 'wb') as fdst:
+                while True:
+                    if cancelar_flag and cancelar_flag():
+                        # Eliminar el archivo parcialmente copiado
+                        fdst.close()
+                        dest_arch.unlink(missing_ok=True)
+                        return f"Clonacion cancelada por el usuario ({i-1}/{total} procesados)."
+
+                    buf = fsrc.read(1024 * 1024) # 1 MB chunks
+                    if not buf:
+                        break
+                    fdst.write(buf)
+                    bytes_copiados += len(buf)
+                    if callback_progreso:
+                        callback_progreso(i, total, arch.name, bytes_copiados, bytes_totales)
+
+            shutil.copystat(str(arch), str(dest_arch))
             exitos += 1
         except Exception:
             errores += 1

@@ -1051,7 +1051,26 @@ class WizardApp:
             text="▶ Iniciar Clonación de Carpeta",
             command=self._ejecutar_clonacion_carpeta_gui
         )
-        btn_ej_clone.pack(anchor="w", pady=10)
+        btn_ej_clone.pack(anchor="w", pady=5)
+
+        self.frame_progreso_clonacion = ttk.Frame(tab_carpeta)
+        self.frame_progreso_clonacion.pack(fill="x", pady=5)
+
+        self.lbl_clon_porcentaje = ttk.Label(self.frame_progreso_clonacion, text="", font=("Helvetica", 14, "bold"), foreground="#0066CC")
+        self.lbl_clon_porcentaje.pack(anchor="w")
+
+        self.progressbar_clon = ttk.Progressbar(self.frame_progreso_clonacion, orient="horizontal", mode="determinate", maximum=100)
+        self.progressbar_clon.pack(fill="x", pady=2)
+
+        self.lbl_clon_info = ttk.Label(self.frame_progreso_clonacion, text="")
+        self.lbl_clon_info.pack(anchor="w")
+
+        self.lbl_clon_archivo = ttk.Label(self.frame_progreso_clonacion, text="", font=("Helvetica", 9, "italic"), foreground="#555555")
+        self.lbl_clon_archivo.pack(anchor="w")
+
+        self.btn_cancelar_clon = ttk.Button(self.frame_progreso_clonacion, text="⏹ Cancelar Clonación", command=self._cancelar_clonacion_gui)
+        self.btn_cancelar_clon.pack(anchor="w", pady=5)
+        self.frame_progreso_clonacion.pack_forget()
 
         # Tab 2: Respaldo de Usuario
         tab_user = ttk.Frame(notebook_paso5, padding=10)
@@ -1532,6 +1551,32 @@ class WizardApp:
 
                 elif tipo == 'ERROR_DISCO':
                     messagebox.showerror("Error de Dispositivo", datos)
+
+                elif tipo == 'PROGRESO_CLONACION':
+                    indice, total, nombre, bytes_copiados, bytes_totales = datos
+
+                    pct = 0.0
+                    if bytes_totales > 0:
+                        pct = (bytes_copiados / bytes_totales) * 100
+                    elif total > 0:
+                        pct = (indice / total) * 100
+
+                    self.progressbar_clon.config(value=pct)
+                    self.lbl_clon_porcentaje.config(text=f"{pct:.1f}%")
+
+                    gb_copiados = bytes_copiados / (1024**3)
+                    gb_totales = bytes_totales / (1024**3)
+                    self.lbl_clon_info.config(text=f"[{indice} / {total} archivos] ({gb_copiados:.2f} GB / {gb_totales:.2f} GB)")
+                    self.lbl_clon_archivo.config(text=nombre)
+
+                    # Update global progress bar too
+                    self.progressbar_global.config(value=pct)
+
+                elif tipo == 'FIN_CLONACION':
+                    res = datos
+                    self.frame_progreso_clonacion.pack_forget()
+                    self.progressbar_global.config(value=100)
+                    messagebox.showinfo("Clonación Finalizada", res)
 
                 elif tipo == 'FIN_EJECUCION':
                     exitos, errores, duplicados, fue_cancelado = datos
@@ -2121,12 +2166,34 @@ class WizardApp:
             messagebox.showerror("Error de Clonación", "Por favor seleccione carpetas válidas de origen y destino.")
             return
 
+        self.cancelar_clon = False
+        self.frame_progreso_clonacion.pack(fill="x", pady=5)
+        self.progressbar_clon.config(value=0)
+        self.lbl_clon_porcentaje.config(text="0.0%")
+        self.lbl_clon_info.config(text="Iniciando...")
+        self.lbl_clon_archivo.config(text="")
+
+        def _progreso(indice, total, nombre, bytes_copiados, bytes_totales):
+            self.cola_eventos.put(('PROGRESO_CLONACION', (indice, total, nombre, bytes_copiados, bytes_totales)))
+
+        def _cancelar_flag():
+            return getattr(self, 'cancelar_clon', False)
+
         def _tarea():
-            res = clonar_carpeta(orig, dest, incremental=inc)
-            self.root.after(0, lambda: messagebox.showinfo("Clonación Finalizada", res))
+            res = clonar_carpeta(
+                orig,
+                dest,
+                incremental=inc,
+                callback_progreso=_progreso,
+                cancelar_flag=_cancelar_flag
+            )
+            self.cola_eventos.put(('FIN_CLONACION', res))
 
         threading.Thread(target=_tarea, daemon=True).start()
-        messagebox.showinfo("Clonación en Proceso", "La clonación de carpeta se está ejecutando en segundo plano...")
+
+    def _cancelar_clonacion_gui(self):
+        if messagebox.askyesno("Cancelar Clonación", "¿Desea cancelar la clonación actual?"):
+            self.cancelar_clon = True
 
     def _ejecutar_respaldo_usuario_gui(self):
         dest = self.entry_user_dest.get().strip()
