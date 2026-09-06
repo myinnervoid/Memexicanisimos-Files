@@ -2,19 +2,23 @@
 """
 Modulo cli.py - Interfaz de Linea de Comandos (CLI) para organizacion masiva de archivos.
 
-Este script permite ejecutar la organizacion de archivos por fecha desde la terminal
+Permite ejecutar la organizacion de archivos por estructura desde la terminal,
 ofreciendo opciones para previsualizar/simular planes o ejecutarlos directamente.
 """
 
 import argparse
 import sys
 from pathlib import Path
-from core import generar_plan, simular_plan, ejecutar_plan, RutaNoValidaError
+from typing import List, Optional
+
+from app_types import ServiceResult, RutaNoValidaError
+from core import generar_plan_con_estructura, ejecutar_plan_con_modo
+from error_codes import ErrorCode
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Herramienta CLI para organizar archivos por fecha (Año/Mes) y gestionar duplicados de forma segura.",
+        description="Herramienta CLI para organizar archivos por fecha/estructura y gestionar duplicados de forma segura.",
         formatter_class=argparse.RawTextHelpFormatter
     )
 
@@ -29,7 +33,7 @@ def main():
         "--destino",
         required=True,
         type=str,
-        help="Ruta del directorio raiz donde se creara la estructura de carpetas Año/Mes."
+        help="Ruta del directorio raiz donde se creara la estructura de carpetas."
     )
 
     # Argumentos opcionales
@@ -40,9 +44,16 @@ def main():
         help="Lista de extensiones separadas por comas a filtrar. Ej: '.jpg,.png,.jpeg' (Por defecto incluye todas)."
     )
     parser.add_argument(
+        "--modo",
+        type=str,
+        choices=["mover", "copiar"],
+        default="mover",
+        help="Modo de operacion: 'mover' (por defecto) o 'copiar'."
+    )
+    parser.add_argument(
         "--sin-subcarpetas",
         action="store_true",
-        help="Si se especifica, solo analiza la carpeta nivel superior (desactiva escaneo recursivo)."
+        help="Si se especifica, solo analiza la carpeta de nivel superior (desactiva escaneo recursivo)."
     )
     parser.add_argument(
         "--sin-exif",
@@ -57,25 +68,29 @@ def main():
     parser.add_argument(
         "--simular",
         action="store_true",
-        help="Modo de prueba: Genera y muestra la simulación del plan sin mover ningun archivo."
+        help="Modo de prueba: Genera y muestra la simulacion del plan sin alterar ningun archivo."
     )
 
     args = parser.parse_args()
 
     # Procesar lista de extensiones si fue proporcionada
-    lista_extensiones = None
+    lista_extensiones: Optional[List[str]] = None
     if args.extensiones:
-        lista_extensiones = [ext.strip() for ext in args.extensiones.split(",") if ext.strip()]
+        lista_extensiones = [
+            ext.strip() if ext.strip().startswith(".") else f".{ext.strip()}"
+            for ext in args.extensiones.split(",")
+            if ext.strip()
+        ]
 
-    ruta_origen = Path(args.origen)
-    ruta_destino = Path(args.destino)
+    ruta_origen = Path(args.origen).resolve()
+    ruta_destino = Path(args.destino).resolve()
 
     print(f"🔎 Analizando directorio origen: {ruta_origen}")
-    print(f"📁 Directorio destino proyectado: {ruta_destino}\n")
+    print(f"📁 Directorio destino proyectado: {ruta_destino}")
+    print(f"⚙️ Modo de operacion: [{args.modo.upper()}]\n")
 
     try:
-        # Generar el plan de operaciones
-        planes, lista_errores = generar_plan(
+        res_plan: ServiceResult = generar_plan_con_estructura(
             origen=ruta_origen,
             destino_base=ruta_destino,
             extensiones=lista_extensiones,
@@ -84,30 +99,59 @@ def main():
             usar_hash_duplicados=args.hash
         )
 
-        # Informar sobre errores durante la recoleccion inicial si los hubiera
-        if lista_errores:
-            print("⚠️ Se detectaron advertencias/errores durante el escaneo inicial:")
-            for err in lista_errores:
-                print(f"   - {err['archivo']}: {err['error']}")
-            print()
+        if not res_plan.success:
+            print(f"❌ ERROR generando plan [{res_plan.error_code}]: {res_plan.error}", file=sys.stderr)
+            return 1
 
-        # Si se solicita la opcion --simular, solo se muestra la vista previa
+        planes = res_plan.data or []
+        if not planes:
+            print("ℹ️ No se encontraron archivos que coincidan con los criterios.")
+            return 0
+
+        print(f"📋 Se encontraron {len(planes)} archivos listos para organizar.\n")
+
         if args.simular:
-            print("🛡️ MODO SIMULACION ACTIVADO (No se modificara ningun archivo en disco)")
-            reporte_simulacion = simular_plan(planes)
-            print(reporte_simulacion)
-        else:
-            print("🚀 EJECUTANDO OPERACIONES EN DISCO...")
-            reporte_ejecucion = ejecutar_plan(planes)
-            print(reporte_ejecucion)
+            print("=" * 70)
+            print("🛡️  MODO SIMULACION ACTIVADO (No se modificara ningun archivo en disco)")
+            print("=" * 70)
+            for i, p in enumerate(planes, start=1):
+                acc = p.get('accion', 'mover').upper()
+                orig = p.get('origen')
+                dest = p.get('destino')
+                fec = p.get('fecha', 'N/A')
+                print(f"[{i}/{len(planes)}] [{acc}] {orig.name}")
+                print(f"   ➔ Destino: {dest}")
+                print(f"   ➔ Fecha:   {fec}")
+            print("=" * 70)
+            print(f"Simulacion completada exitosamente. Total archivos simulados: {len(planes)}")
+            return 0
+
+        print("🚀 EJECUTANDO OPERACIONES EN DISCO...")
+        res_ejec: ServiceResult = ejecutar_plan_con_modo(
+            planes=planes,
+            modo=args.modo.capitalize(),
+            callback_progreso=lambda i, total, nom: print(f"[{i}/{total}] Procesando: {nom}")
+        )
+
+        if not res_ejec.success:
+            print(f"\n❌ Error durante la ejecucion [{res_ejec.error_code}]: {res_ejec.error}", file=sys.stderr)
+            return 1
+
+        d_res = res_ejec.data or {}
+        print("\n" + "=" * 70)
+        print("✅ EJECUCION COMPLETADA")
+        print(f"   • Exitosos: {d_res.get('exitos', 0)}")
+        print(f"   • Errores:  {d_res.get('errores', 0)}")
+        print("=" * 70)
+        return 0
 
     except RutaNoValidaError as e:
         print(f"❌ ERROR: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
     except Exception as e:
         print(f"❌ ERROR INESPERADO: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
