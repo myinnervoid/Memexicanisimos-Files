@@ -77,18 +77,34 @@ def obtener_archivos(
 
     necesita_stat = (tamano_min_bytes is not None or tamano_max_bytes is not None or fecha_limite is not None)
 
-    try:
-        iterador = origen_path.rglob("*") if incluir_subcarpetas else origen_path.iterdir()
-    except PermissionError as pe:
-        app_logger.error(f"Permiso denegado al acceder a {origen_path}: {pe}")
-        return ServiceResult(success=False, error=_("Permiso denegado al acceder a la carpeta."), error_code=ErrorCode.ERR_PERMISSION_DENIED)
-
     archivos_encontrados: List[Path] = []
+
+    def _escanear_directorio(dir_path: str):
+        try:
+            with os.scandir(dir_path) as it:
+                for entry in it:
+                    try:
+                        if entry.is_file():
+                            yield Path(entry.path)
+                        elif incluir_subcarpetas and entry.is_dir():
+                            yield from _escanear_directorio(entry.path)
+                    except PermissionError:
+                        app_logger.warning(f"Permiso denegado en: '{entry.path}'")
+                    except Exception as e:
+                        app_logger.warning(f"Error procesando '{entry.path}': {e}")
+        except PermissionError:
+            app_logger.warning(f"Permiso denegado al escanear directorio: '{dir_path}'")
+        except Exception as e:
+            app_logger.warning(f"Error escaneando directorio '{dir_path}': {e}")
+
+    try:
+        iterador = _escanear_directorio(str(origen_path))
+    except Exception as e:
+        app_logger.error(f"Error inicializando escáner en {origen_path}: {e}")
+        return ServiceResult(success=False, error=_("Error al acceder a la carpeta."), error_code=ErrorCode.ERR_PERMISSION_DENIED)
 
     for elemento in iterador:
         try:
-            if not elemento.is_file():
-                continue
 
             if not incluir_ocultos and elemento.name.startswith('.'):
                 continue
@@ -808,3 +824,141 @@ def detectar_dispositivos_multimedia() -> List[Dict[str, str]]:
                 app_logger.debug(f"Error escaneando punto de montaje '{r}': {e}")
 
     return dispositivos
+
+def respaldo_inteligente_windows_linux(
+    perfiles: List[str],
+    destino: Union[str, Path],
+    callback_progreso: Optional[Callable[[int, int, int, int, str], None]] = None,
+    cancelar_flag: Optional[Callable[[], bool]] = None
+) -> ServiceResult:
+    """
+    Respalda perfiles estándar (Documentos, Escritorio, etc.) omitiendo cachés y basura.
+    """
+    p_dest = Path(destino)
+
+    if not p_dest.exists() or not p_dest.is_dir():
+        return ServiceResult(success=False, error=_("La ruta de destino no es válida."), error_code=ErrorCode.ERR_DESTINATION_NOT_FOUND)
+
+    carpetas_usuario = {d['nombre']: Path(d['ruta']) for d in detectar_carpetas_usuario()}
+    carpetas_a_respaldar = []
+
+    for perfil in perfiles:
+        if perfil in carpetas_usuario:
+            carpetas_a_respaldar.append(carpetas_usuario[perfil])
+
+    if not carpetas_a_respaldar:
+        return ServiceResult(success=False, error=_("No se encontraron los perfiles seleccionados o están vacíos."), error_code=ErrorCode.ERR_ORIGIN_NOT_FOUND)
+
+    # Filtros inteligentes
+    patrones_basura = [
+        re.compile(r'\.tmp$', re.IGNORECASE),
+        re.compile(r'\.bak$', re.IGNORECASE),
+        re.compile(r'~$', re.IGNORECASE),
+        re.compile(r'Thumbs\.db$', re.IGNORECASE),
+        re.compile(r'desktop\.ini$', re.IGNORECASE),
+    ]
+
+    directorios_omitir = [
+        'AppData', 'Local Settings', 'Application Data', '.cache',
+        'node_modules', '__pycache__', 'temp', 'tmp', '.npm', '.cargo'
+    ]
+
+    archivos_totales = []
+
+    # Recolectar archivos aplicando filtro de directorios
+    def escanear_inteligente(dir_path: Path):
+        try:
+            with os.scandir(dir_path) as it:
+                for entry in it:
+                    if entry.is_file():
+                        yield Path(entry.path)
+                    elif entry.is_dir():
+                        if entry.name not in directorios_omitir and not entry.name.startswith('.'):
+                            yield from escanear_inteligente(Path(entry.path))
+        except Exception:
+            pass
+
+    for carpeta in carpetas_a_respaldar:
+        archivos_totales.extend(list(escanear_inteligente(carpeta)))
+
+    total = len(archivos_totales)
+    if total == 0:
+        return ServiceResult(success=True, data={"copiados": 0, "omitidos": 0, "errores": 0, "bytes_copiados": 0})
+
+    bytes_totales = sum(a.stat().st_size for a in archivos_totales if a.exists())
+
+    check_dest = p_dest
+    while not check_dest.exists() and check_dest != check_dest.parent:
+        check_dest = check_dest.parent
+
+    try:
+        espacio_libre = shutil.disk_usage(str(check_dest)).free
+        if bytes_totales > 0 and (bytes_totales + 20 * 1024 * 1024) > espacio_libre:
+            return ServiceResult.fail(
+                error=_("Espacio insuficiente en el disco de destino para el respaldo. Requerido: {req:.2f} MB, Disponible: {disp:.2f} MB").format(
+                    req=bytes_totales / (1024 * 1024),
+                    disp=espacio_libre / (1024 * 1024)
+                ),
+                error_code=ErrorCode.ERR_DISK_FULL
+            )
+    except Exception:
+        pass
+
+    copiados = 0
+    omitidos = 0
+    errores = 0
+    bytes_copiados = 0
+    home_dir = Path.home()
+
+    for idx, a in enumerate(archivos_totales):
+        if cancelar_flag and cancelar_flag():
+            app_logger.info("Respaldo inteligente cancelado por el usuario.")
+            break
+
+        if callback_progreso:
+            callback_progreso(copiados, omitidos, errores, total, a.name)
+
+        # Omitir archivos basura
+        es_basura = any(patron.search(a.name) for patron in patrones_basura)
+        if es_basura:
+            omitidos += 1
+            continue
+
+        try:
+            # Mantener la estructura relativa al home directory
+            try:
+                ruta_relativa = a.relative_to(home_dir)
+            except ValueError:
+                # Fallback si no está en home
+                ruta_relativa = Path(a.name)
+
+            destino_final = p_dest / ruta_relativa
+            destino_final.parent.mkdir(parents=True, exist_ok=True)
+
+            stat_orig = a.stat()
+            size_orig = stat_orig.st_size
+            mtime_orig = stat_orig.st_mtime
+
+            necesita_copia = True
+            if destino_final.exists():
+                stat_dest = destino_final.stat()
+                if stat_dest.st_size == size_orig and abs(stat_dest.st_mtime - mtime_orig) < 2.0:
+                    necesita_copia = False
+
+            if necesita_copia:
+                shutil.copy2(a, destino_final)
+                copiados += 1
+                bytes_copiados += size_orig
+            else:
+                omitidos += 1
+
+        except Exception as e:
+            app_logger.warning(f"Error copiando '{a}' en respaldo: {e}")
+            errores += 1
+
+    return ServiceResult(success=True, data={
+        "copiados": copiados,
+        "omitidos": omitidos,
+        "errores": errores,
+        "bytes_copiados": bytes_copiados
+    })
