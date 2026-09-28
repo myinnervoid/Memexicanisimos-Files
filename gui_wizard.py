@@ -25,7 +25,8 @@ from core import (
     limpiar_carpetas_vacias, analizar_estructura_destino,
     deshacer_n_operaciones, obtener_historial_undo,
     clonar_carpeta, detectar_carpetas_usuario,
-    detectar_dispositivos_multimedia, obtener_archivos
+    detectar_dispositivos_multimedia, obtener_archivos,
+    respaldo_inteligente_windows_linux
 )
 
 
@@ -549,6 +550,74 @@ class WizardApp:
         )
         self.btn_cancelar_clone.pack(anchor="e")
 
+        # NUEVA PESTAÑA: Respaldo Inteligente Win->Lin
+        tab_respaldo = ttk.Frame(notebook_paso5, padding=12)
+        notebook_paso5.add(tab_respaldo, text="🛡️ Respaldo Inteligente Win->Lin")
+
+        ttk.Label(tab_respaldo, text="Selecciona los perfiles a respaldar (omite cachés y basura automáticamente):").pack(anchor="w", pady=(0, 5))
+
+        self.vars_perfiles_respaldo = {}
+        frame_perfiles = tk.Frame(tab_respaldo)
+        frame_perfiles.pack(fill="x", pady=5)
+
+        # Obtener perfiles disponibles y crear checkboxes
+        perfiles_std = detectar_carpetas_usuario()
+
+        row, col = 0, 0
+        for p in perfiles_std:
+            nombre = p['nombre']
+            var = tk.BooleanVar(value=True)
+            self.vars_perfiles_respaldo[nombre] = var
+            cb = ttk.Checkbutton(frame_perfiles, text=f"{nombre} ({p['ruta']})", variable=var)
+            cb.grid(row=row, column=col, sticky="w", padx=10, pady=2)
+            col += 1
+            if col > 1:
+                col = 0
+                row += 1
+
+        if not perfiles_std:
+            ttk.Label(frame_perfiles, text="No se detectaron carpetas de usuario estándar.", foreground="red").pack(anchor="w")
+
+        grid_respaldo = ttk.Frame(tab_respaldo)
+        grid_respaldo.pack(fill="x", pady=(15, 5))
+        ttk.Label(grid_respaldo, text="Carpeta Destino (Ej. Disco Externo):").grid(row=0, column=0, sticky="w", pady=5)
+        self.entry_respaldo_dest = ttk.Entry(grid_respaldo, width=40)
+        self.entry_respaldo_dest.grid(row=0, column=1, padx=5, sticky="ew")
+        ttk.Button(grid_respaldo, text="Examinar...", command=lambda: self._examinar_generico(self.entry_respaldo_dest)).grid(row=0, column=2)
+        grid_respaldo.columnconfigure(1, weight=1)
+
+        self.btn_iniciar_respaldo = tk.Button(
+            tab_respaldo, text="▶ Iniciar Respaldo Inteligente", bg=self.COLOR_SUCCESS, fg="#FFFFFF",
+            font=("Helvetica", 9, "bold"), relief="flat", padx=12, pady=6, command=self._ejecutar_respaldo_inteligente_gui
+        )
+        self.btn_iniciar_respaldo.pack(anchor="w", pady=(5, 15))
+
+        # Tarjeta visual de progreso de respaldo
+        self.card_progreso_respaldo = tk.Frame(tab_respaldo, bg=self.COLOR_PANEL, highlightbackground=self.COLOR_BORDER, highlightthickness=1, padx=15, pady=12)
+        self.card_progreso_respaldo.pack(fill="x", pady=5)
+
+        frame_header_respaldo = tk.Frame(self.card_progreso_respaldo, bg=self.COLOR_PANEL)
+        frame_header_respaldo.pack(fill="x", pady=(0, 5))
+
+        self.lbl_respaldo_porcentaje = tk.Label(frame_header_respaldo, text="0.0%", font=("Helvetica", 14, "bold"), fg=self.COLOR_PRIMARY, bg=self.COLOR_PANEL)
+        self.lbl_respaldo_porcentaje.pack(side="left")
+
+        self.lbl_respaldo_contadores = tk.Label(frame_header_respaldo, text="Esperando inicio...", font=("Helvetica", 9, "bold"), fg=self.COLOR_SUBTEXT, bg=self.COLOR_PANEL)
+        self.lbl_respaldo_contadores.pack(side="right")
+
+        self.progress_respaldo = ttk.Progressbar(self.card_progreso_respaldo, orient="horizontal", mode="determinate")
+        self.progress_respaldo.pack(fill="x", pady=5)
+
+        self.lbl_respaldo_archivo_actual = tk.Label(self.card_progreso_respaldo, text="", font=("Helvetica", 8), fg=self.COLOR_SUBTEXT, bg=self.COLOR_PANEL, anchor="w", justify="left")
+        self.lbl_respaldo_archivo_actual.pack(fill="x", pady=(2, 5))
+
+        self.btn_cancelar_respaldo = tk.Button(
+            self.card_progreso_respaldo, text="⏹ Cancelar Respaldo", bg=self.COLOR_PRIMARY, fg="#FFFFFF",
+            font=("Helvetica", 8, "bold"), relief="flat", padx=8, pady=3, state="disabled", command=self._cancelar_respaldo_gui
+        )
+        self.btn_cancelar_respaldo.pack(anchor="e")
+
+
     # ---------------------------------------------------------
     # DESACOPLAMIENTO Y CONSUMO DE BACKEND (T2.1 & T2.2)
     # ---------------------------------------------------------
@@ -712,6 +781,44 @@ class WizardApp:
                             f"• Incremental omitidos: {d_res.get('omitidos', 0)}\n"
                             f"• Errores: {d_res.get('errores', 0)}"
                         )
+
+                elif tipo == 'progreso_respaldo':
+                    self.progress_respaldo["value"] = datos['porcentaje']
+                    self.lbl_respaldo_porcentaje.config(text=f"{datos['porcentaje']:.1f}%")
+                    self.lbl_respaldo_contadores.config(
+                        text=f"Copiados: {datos['copiados']} | Omitidos: {datos['omitidos']} | Errores: {datos['errores']} | Total: {datos['total']}"
+                    )
+                    self.lbl_respaldo_archivo_actual.config(text=f"Procesando: {datos['archivo']}")
+
+                elif tipo == 'fin_respaldo':
+                    res: ServiceResult = datos['resultado']
+                    self.btn_iniciar_respaldo.config(state="normal")
+                    self.btn_cancelar_respaldo.config(state="disabled")
+
+                    if not res.success:
+                        self.lbl_respaldo_archivo_actual.config(text=f"❌ Error: {res.error}")
+                        messagebox.showerror("Error de Respaldo", f"Error: {res.error}")
+                    else:
+                        d = res.data or {}
+                        self.progress_respaldo["value"] = 100
+                        self.lbl_respaldo_porcentaje.config(text="100.0%")
+                        self.lbl_respaldo_archivo_actual.config(text="✅ Respaldo Inteligente completado con éxito.")
+
+                        gb_copiados = d.get('bytes_copiados', 0) / (1024 ** 3)
+                        messagebox.showinfo(
+                            "Respaldo Completado",
+                            f"Resumen del respaldo:\n\n"
+                            f"• Archivos copiados: {d.get('copiados', 0)}\n"
+                            f"• Archivos omitidos (basura/caché): {d.get('omitidos', 0)}\n"
+                            f"• Errores: {d.get('errores', 0)}\n"
+                            f"• Tamaño total copiado: {gb_copiados:.2f} GB"
+                        )
+
+                elif tipo == 'error':
+                    self.btn_iniciar_respaldo.config(state="normal")
+                    self.btn_cancelar_respaldo.config(state="disabled")
+                    self.lbl_respaldo_archivo_actual.config(text="❌ Ocurrió un error inesperado.")
+                    messagebox.showerror("Error", datos['mensaje'])
 
         except queue.Empty:
             pass
@@ -1143,6 +1250,67 @@ class WizardApp:
         self._guardar_configuracion()
         self.root.destroy()
 
+    def _ejecutar_respaldo_inteligente_gui(self):
+        perfiles_seleccionados = [nombre for nombre, var in self.vars_perfiles_respaldo.items() if var.get()]
+        if not perfiles_seleccionados:
+            messagebox.showwarning("Sin Selección", "Selecciona al menos un perfil para respaldar.")
+            return
+
+        destino = self.entry_respaldo_dest.get().strip()
+        if not destino:
+            messagebox.showwarning("Destino Vacío", "Selecciona una carpeta de destino para el respaldo.")
+            return
+
+        self.btn_iniciar_respaldo.config(state="disabled")
+        self.btn_cancelar_respaldo.config(state="normal")
+        self._cancelar_actual = False
+
+        self.lbl_respaldo_porcentaje.config(text="0.0%")
+        self.lbl_respaldo_contadores.config(text="Calculando...")
+        self.progress_respaldo["value"] = 0
+        self.progress_respaldo["maximum"] = 100
+        self.lbl_respaldo_archivo_actual.config(text="Escaneando perfiles...")
+
+        def _hilo_respaldo():
+            def cb_progreso(copiados, omitidos, errores, total, nombre_actual):
+                porcentaje = 0
+                procesados = copiados + omitidos + errores
+                if total > 0:
+                    porcentaje = (procesados / total) * 100
+
+                self.cola_eventos.put({
+                    'tipo': 'progreso_respaldo',
+                    'porcentaje': porcentaje,
+                    'copiados': copiados,
+                    'omitidos': omitidos,
+                    'errores': errores,
+                    'total': total,
+                    'archivo': nombre_actual
+                })
+
+            def check_cancelar():
+                return self._cancelar_actual
+
+            try:
+                res = respaldo_inteligente_windows_linux(
+                    perfiles=perfiles_seleccionados,
+                    destino=destino,
+                    callback_progreso=cb_progreso,
+                    cancelar_flag=check_cancelar
+                )
+                self.cola_eventos.put({'tipo': 'fin_respaldo', 'resultado': res})
+            except Exception as e:
+                app_logger.error(f"Excepción en hilo respaldo: {e}")
+                self.cola_eventos.put({'tipo': 'error', 'mensaje': str(e)})
+
+        hilo = threading.Thread(target=_hilo_respaldo, daemon=True)
+        hilo.start()
+
+    def _cancelar_respaldo_gui(self):
+        if messagebox.askyesno("Cancelar", "¿Estás seguro de que deseas cancelar el respaldo inteligente?"):
+            self._cancelar_actual = True
+            self.lbl_respaldo_archivo_actual.config(text="Cancelando... por favor espera.")
+            self.btn_cancelar_respaldo.config(state="disabled")
 
 def main():
     root = tk.Tk()
