@@ -11,15 +11,25 @@ Garantiza integridad de datos ante caídas o cortes de energía:
 
 import errno
 import os
+import shutil
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Optional, Tuple, Union
 
 PARTIAL_SUFFIX = ".memex.partial"
 COPY_BUFFER = 8 * 1024 * 1024  # 8 MB para ficheros grandes
 
 
-def _copiar_stream(src: Path, dst_fd: int, size: int) -> None:
-    """Copia con copy_file_range si el SO lo soporta (zero-copy), si no stream de 8 MB con fallback seguro."""
+def _copiar_stream(src: Union[str, Path], dst_fd: int, size: int) -> None:
+    """Copia con copy_file_range si el SO lo soporta (zero-copy), si no stream de 8 MB con fallback seguro.
+
+    Args:
+        src (Union[str, Path]): Ruta al archivo de origen que se copiará.
+        dst_fd (int): File descriptor del archivo de destino abierto.
+        size (int): Tamaño en bytes del archivo de origen.
+
+    Raises:
+        OSError: Si ocurre un error irrecuperable de espacio en disco o hardware.
+    """
     with open(src, 'rb', buffering=0) as fsrc:
         if size > 0:
             try:
@@ -53,11 +63,9 @@ def _copiar_stream(src: Path, dst_fd: int, size: int) -> None:
             os.write(dst_fd, buf)
 
 
-import shutil
+def copia_atomica(origen: Union[str, Path], destino: Union[str, Path], durabilidad: str = "lote") -> Tuple[bool, str]:
+    """Copia un archivo de origen a un destino de forma atómica y durable.
 
-
-def copia_atomica(origen: Path, destino: Path, durabilidad: str = "lote") -> Tuple[bool, str]:
-    """
     Garantías:
       - Si falla, no queda archivo con nombre final en destino ni .partial huérfano.
       - Si tiene éxito, el contenido está en disco y el rename es atómico.
@@ -66,7 +74,15 @@ def copia_atomica(origen: Path, destino: Path, durabilidad: str = "lote") -> Tup
           * "archivo": fsync por archivo (máxima seguridad, menor throughput en USB).
           * "lote": fsync de directorio + sync de lotes en ledger (balance óptimo 60-90 MB/s).
           * "none": solo os.replace sin llamadas a fsync (máxima velocidad, sync final del OS).
-    Devuelve (ok, error_msg).
+
+    Args:
+        origen (Union[str, Path]): Ruta al archivo de origen.
+        destino (Union[str, Path]): Ruta del archivo de destino.
+        durabilidad (str, optional): Estrategia de fsync requerida ("archivo", "lote", o "none"). Por defecto es "lote".
+
+    Returns:
+        Tuple[bool, str]: Una tupla donde el primer elemento es True si la copia fue exitosa,
+        y el segundo es el mensaje de error (vacío si hubo éxito).
     """
     origen = Path(origen)
     destino = Path(destino)
@@ -79,7 +95,7 @@ def copia_atomica(origen: Path, destino: Path, durabilidad: str = "lote") -> Tup
     except OSError as e:
         return False, f"stat origen: {e}"
 
-    fd = None
+    fd: Optional[int] = None
     try:
         fd = os.open(partial, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o644)
         _copiar_stream(origen, fd, size)
@@ -136,8 +152,18 @@ def copia_atomica(origen: Path, destino: Path, durabilidad: str = "lote") -> Tup
         raise
 
 
-def limpiar_partials_huerfanos(raiz: Path) -> int:
-    """Barre .partial sin dueño (opcional, tras un crash o corte forzado)."""
+def limpiar_partials_huerfanos(raiz: Union[str, Path]) -> int:
+    """Busca y elimina recursivamente archivos temporales que quedaron huérfanos.
+
+    Barre archivos con el sufijo .partial que no tienen dueño (útil opcionalmente 
+    tras un crash o corte forzado).
+
+    Args:
+        raiz (Union[str, Path]): El directorio base donde iniciar la búsqueda recursiva.
+
+    Returns:
+        int: El número de archivos huérfanos que fueron eliminados.
+    """
     eliminados = 0
     for p in Path(raiz).rglob(f"*{PARTIAL_SUFFIX}"):
         try:
