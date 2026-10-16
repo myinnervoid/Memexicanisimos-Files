@@ -112,7 +112,7 @@ class UndoRecord(TypedDict):
 
 
 @dataclass
-class ServiceResult:
+class ApiResponse:
     """Estructura de respuesta unificada retornada por todas las funciones Backend."""
     success: bool
     data: Any = None
@@ -136,16 +136,16 @@ class ServiceResult:
         }
 
     @classmethod
-    def ok(cls, data: Any = None, message: Optional[str] = None) -> "ServiceResult":
+    def ok(cls, data: Any = None, message: Optional[str] = None) -> "ApiResponse":
         """Factory helper para respuestas exitosas estandarizadas."""
         return cls(success=True, data=data, message=message, error=None, error_code=None)
 
     @classmethod
-    def fail(cls, error: str, error_code: Optional[Union[str, ErrorCode]] = None, data: Any = None) -> "ServiceResult":
+    def fail(cls, error: str, error_code: Optional[Union[str, ErrorCode]] = None, data: Any = None) -> "ApiResponse":
         """Factory helper para respuestas fallidas estandarizadas."""
         code_str = error_code.value if isinstance(error_code, ErrorCode) else error_code
         return cls(success=False, data=data, error=error, message=error, error_code=code_str)
 
 
-# Alias estandarizado de transporte/IPC conforme a Ley 5 (ApiResponse<T>)
-ApiResponse = ServiceResult
+# Retrocompatibilidad con ServiceResult
+ServiceResult = ApiResponse

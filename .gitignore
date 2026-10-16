@@ -8,7 +8,6 @@ build/
 dist/memexicanisimos-files
 dist/OrganizadorArchivos*
 dist/organizador_archivos*
-*.spec
 
 # Entornos virtuales
 venv/
