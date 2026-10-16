@@ -11,11 +11,19 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 
-def _archivos_identicos(p1: Path, p2: Path) -> bool:
-    """Compara byte a byte en bloques de 64 KB de forma rápida."""
+def _archivos_identicos(p1: Union[str, Path], p2: Union[str, Path]) -> bool:
+    """Compara byte a byte en bloques de 64 KB de forma rápida.
+
+    Args:
+        p1 (Union[str, Path]): Ruta al primer archivo a comparar.
+        p2 (Union[str, Path]): Ruta al segundo archivo a comparar.
+
+    Returns:
+        bool: True si los archivos son idénticos en su contenido, False de lo contrario.
+    """
     try:
         with open(p1, "rb") as f1, open(p2, "rb") as f2:
             while True:
@@ -30,14 +38,22 @@ def _archivos_identicos(p1: Path, p2: Path) -> bool:
 
 
 def resolver_conflicto_versionado(
-    origen: Path,
-    destino: Path,
+    origen: Union[str, Path],
+    destino: Union[str, Path],
     dir_historial_nombre: str = ".historial"
 ) -> Optional[Path]:
-    """
-    Evalúa colisión de archivos.
+    """Evalúa colisión de archivos.
+
     - Retorna None si los archivos son idénticos (no requiere acción, omitir).
     - Mueve la versión preexistente a .historial/ y retorna destino (para recibir el nuevo archivo).
+
+    Args:
+        origen (Union[str, Path]): Ruta del archivo de origen que se desea copiar o mover.
+        destino (Union[str, Path]): Ruta de destino donde ocurrirá la posible colisión.
+        dir_historial_nombre (str, optional): Nombre del directorio de historial. Por defecto ".historial".
+
+    Returns:
+        Optional[Path]: La ruta del destino si está listo para recibir el archivo, o None si ambos archivos son idénticos.
     """
     origen = Path(origen)
     destino = Path(destino)
