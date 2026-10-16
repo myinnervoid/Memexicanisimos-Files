@@ -10,24 +10,21 @@ core/backup.py - Motor de Respaldo Inteligente y Clonación por Streaming.
 
 import os
 import re
+import resource
 import shutil
 import time
-import resource
 from pathlib import Path
-from typing import Callable, List, Optional, Union, Dict, Any
+from typing import Callable, Dict, List, Optional, Union
 
 from app_types import ServiceResult
-from error_codes import ErrorCode
-from config import AppConfig
-from logger import app_logger
-from i18n import _
-
-from core.scanner import iterar_archivos, iterar_directorios, contar_archivos_y_bytes
 from core.atomic_io import copia_atomica
 from core.checkpoint import CheckpointLedger, OpRecord, make_op_id
-from core.locks import adquirir_lock, liberar_lock, LockError
+from core.locks import LockError, adquirir_lock, liberar_lock
+from core.scanner import iterar_archivos, iterar_directorios
 from core.versioning import resolver_conflicto_versionado
-
+from error_codes import ErrorCode
+from i18n import _
+from logger import app_logger
 
 PATRONES_BASURA = [
     re.compile(r'\.tmp$', re.IGNORECASE),

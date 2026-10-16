@@ -3,8 +3,8 @@ Uso programático de la capa de servicio.
 
 Requiere: pip install -e .
 """
-from services.memex_service import MemexService
 from services.memex_config import MemexConfig
+from services.memex_service import MemexService
 
 
 def main():

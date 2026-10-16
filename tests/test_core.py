@@ -2,20 +2,14 @@
 Modulo test_core.py - Pruebas Unitarias Automatizadas para core.py.
 """
 
-import os
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
-from datetime import date
 
 from app_types import ServiceResult
+from core import deshacer_n_operaciones, ejecutar_plan_con_modo, generar_plan_con_estructura, obtener_archivos
 from error_codes import ErrorCode
-from core import (
-    obtener_archivos, generar_plan_con_estructura,
-    ejecutar_plan_con_modo, deshacer_n_operaciones,
-    obtener_historial_undo
-)
 
 
 class TestCoreBackend(unittest.TestCase):
@@ -108,8 +102,8 @@ class TestCoreBackend(unittest.TestCase):
 
     def test_ejecutar_modo_copiar_espacio_insuficiente(self):
         """Verifica que ejecutar_plan_con_modo aborte limpiamente si el disco está lleno."""
-        from unittest.mock import patch
         import collections
+        from unittest.mock import patch
 
         res_plan = generar_plan_con_estructura(origen=self.origen, destino_base=self.destino)
         self.assertTrue(res_plan.success)

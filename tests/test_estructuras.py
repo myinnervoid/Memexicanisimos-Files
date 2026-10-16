@@ -4,8 +4,8 @@ Migrado y consolidado desde probar_estructuras.py.
 """
 
 import unittest
-from pathlib import Path
 from datetime import date
+from pathlib import Path
 
 from core import generar_ruta_destino, obtener_categoria
 

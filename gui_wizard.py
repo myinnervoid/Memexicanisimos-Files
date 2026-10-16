@@ -4,30 +4,31 @@ Modulo gui_wizard.py - Interfaz Gráfica "Memexicanisimos Files v1.0" Desacoplad
 Consume estrictamente los contratos app_types.py y las funciones de core.py.
 """
 
-import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext, messagebox, simpledialog
-import threading
-import queue
 import json
-from pathlib import Path
+import queue
+import threading
+import tkinter as tk
 from datetime import date
-from typing import Dict, List, Any, Optional
+from pathlib import Path
+from tkinter import filedialog, messagebox, scrolledtext, simpledialog, ttk
+from typing import Dict, List
 
-from app_types import ServiceResult, PlanArchivo, FiltrosAvanzados, EstructuraConfig
-from error_codes import ErrorCode
-from config import AppConfig, CATEGORIAS_EXT
-from logger import app_logger
-from i18n import _
-
+from app_types import EstructuraConfig, FiltrosAvanzados, PlanArchivo, ServiceResult
+from config import CATEGORIAS_EXT, AppConfig
 from core import (
-    generar_plan_con_estructura, generar_ruta_destino,
-    generar_nombre_unico, ejecutar_plan_con_modo,
-    limpiar_carpetas_vacias, analizar_estructura_destino,
-    deshacer_n_operaciones, obtener_historial_undo,
-    clonar_carpeta, detectar_carpetas_usuario,
-    detectar_dispositivos_multimedia, obtener_archivos,
-    respaldo_inteligente_windows_linux
+    clonar_carpeta,
+    deshacer_n_operaciones,
+    detectar_carpetas_usuario,
+    detectar_dispositivos_multimedia,
+    ejecutar_plan_con_modo,
+    generar_plan_con_estructura,
+    generar_ruta_destino,
+    limpiar_carpetas_vacias,
+    obtener_historial_undo,
+    respaldo_inteligente_windows_linux,
 )
+from error_codes import ErrorCode
+from logger import app_logger
 
 
 class ToolTip:
@@ -518,7 +519,7 @@ class WizardApp:
 
         self.var_clone_inc = tk.BooleanVar(value=True)
         ttk.Checkbutton(tab_carpeta, text="Modo Incremental (Solo copiar archivos nuevos/modificados)", variable=self.var_clone_inc).pack(anchor="w", pady=8)
-        
+
         self.btn_iniciar_clonacion = tk.Button(
             tab_carpeta, text="▶ Iniciar Clonación de Carpeta", bg=self.COLOR_SUCCESS, fg="#FFFFFF",
             font=("Helvetica", 9, "bold"), relief="flat", padx=12, pady=6, command=self._ejecutar_clonacion_carpeta_gui

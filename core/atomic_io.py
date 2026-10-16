@@ -9,8 +9,8 @@ Garantiza integridad de datos ante caídas o cortes de energía:
 - Limpieza automática de .partial huérfanos.
 """
 
-import os
 import errno
+import os
 from pathlib import Path
 from typing import Tuple
 
@@ -54,6 +54,7 @@ def _copiar_stream(src: Path, dst_fd: int, size: int) -> None:
 
 
 import shutil
+
 
 def copia_atomica(origen: Path, destino: Path, durabilidad: str = "lote") -> Tuple[bool, str]:
     """

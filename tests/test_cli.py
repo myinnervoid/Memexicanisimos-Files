@@ -2,7 +2,6 @@
 Modulo test_cli.py - Pruebas Automatizadas para el CLI de Memexicanisimos Files.
 """
 
-import os
 import shutil
 import subprocess
 import sys

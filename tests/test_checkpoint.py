@@ -2,9 +2,10 @@
 tests/test_checkpoint.py - Pruebas para CheckpointLedger y op_id determinista.
 """
 
-import unittest
 import tempfile
+import unittest
 from pathlib import Path
+
 from core.checkpoint import CheckpointLedger, generar_op_id
 
 

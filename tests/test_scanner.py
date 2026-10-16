@@ -2,10 +2,11 @@
 tests/test_scanner.py - Pruebas para escáner iterativo y streaming de archivos.
 """
 
-import unittest
 import tempfile
+import unittest
 from pathlib import Path
-from core.scanner import iterar_archivos, contar_archivos_y_bytes
+
+from core.scanner import contar_archivos_y_bytes, iterar_archivos
 
 
 class TestScanner(unittest.TestCase):

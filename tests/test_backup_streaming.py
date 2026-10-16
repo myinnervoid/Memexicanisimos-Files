@@ -2,11 +2,12 @@
 tests/test_backup_streaming.py - Pruebas para clonación, reanudación por ledger, locks y versionado.
 """
 
-import unittest
 import tempfile
+import unittest
 from pathlib import Path
-from core.backup import clonar_carpeta, respaldo_inteligente_windows_linux
-from core.locks import adquirir_lock, LockError
+
+from core.backup import clonar_carpeta
+from core.locks import adquirir_lock
 from core.versioning import resolver_conflicto_versionado
 
 

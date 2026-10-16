@@ -6,7 +6,6 @@ Exporta la función global `_()` para envolver cadenas traducibles.
 """
 
 import gettext
-import os
 from pathlib import Path
 
 # Directorio raíz de traducciones

@@ -5,7 +5,6 @@ Proporciona el objeto AppConfig y exporta el diccionario unificado CATEGORIAS_EX
 para garantizar sincronización absoluta entre Backend y Frontend.
 """
 
-import os
 from pathlib import Path
 from typing import Dict, List
 

@@ -8,11 +8,10 @@ Reglas de Oro:
 4. Autenticación fuerte mediante token Bearer (≥32 caracteres).
 """
 
-import os
 import json
 import secrets
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 RUTAS_PROHIBIDAS_COMO_SANDBOX = {

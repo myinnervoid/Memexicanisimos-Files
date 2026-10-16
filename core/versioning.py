@@ -7,11 +7,11 @@ Evita la sobrescritura ciega de archivos modificados:
   una subcarpeta .historial/ con marca de tiempo ISO (YYYYMMDD_HHMMSS), dejando libre la ruta original.
 """
 
-from pathlib import Path
-from datetime import datetime
-from typing import Optional
 import os
 import shutil
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
 
 def _archivos_identicos(p1: Path, p2: Path) -> bool:

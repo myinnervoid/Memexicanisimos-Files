@@ -3,9 +3,10 @@ tests/test_audit_redaction.py - Verifica que el audit log redacta rutas privadas
 """
 
 import json
-import unittest
 import tempfile
+import unittest
 from pathlib import Path
+
 from services.memex_config import MemexConfig
 from services.memex_service import MemexService
 

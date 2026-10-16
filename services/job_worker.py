@@ -9,17 +9,16 @@ Resuelve los 5 gotchas de producción:
 5. Cancelación híbrida ultra rápida: threading.Event in-process + flag .cancel en disco.
 """
 
-import os
-import sys
 import json
+import os
+import threading
 import time
 import uuid
-import threading
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Callable
+from typing import Any, Callable, Dict, List, Optional
 
 from logger import app_logger
 

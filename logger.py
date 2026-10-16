@@ -6,12 +6,12 @@ y redirección de eventos en tiempo real hacia colas de interfaz de usuario (GUI
 Soporta loguru si está disponible, o cae elegantemente a logging estándar.
 """
 
-import sys
 import logging
+import queue
+import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional, Callable
-import queue
+from typing import Optional
 
 from config import AppConfig
 

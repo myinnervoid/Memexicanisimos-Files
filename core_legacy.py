@@ -5,27 +5,27 @@ Implementa la lógica de búsqueda, clasificación, ejecución de planes,
 desduplicación y Undo con Logging Centralizado (loguru) e i18n.
 """
 
-from collections import deque
-from datetime import datetime, date, timedelta
 import hashlib
 import json
 import os
 import re
 import shutil
 import tempfile
+from collections import deque
+from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Optional, Union, Tuple, Any, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 # Importaciones del proyecto
 from app_types import (
-    ServiceResult, PlanArchivo, FiltrosAvanzados, EstructuraConfig, UndoRecord,
-    RutaNoValidaError, FechaNoEncontradaError, DiskFullError, PermissionDeniedError, FileLockedError
+    FechaNoEncontradaError,
+    ServiceResult,
 )
-from error_codes import ErrorCode
-from config import AppConfig, CATEGORIAS_EXT
-from logger import app_logger
-from i18n import _
+from config import CATEGORIAS_EXT, AppConfig
 from core.atomic_io import copia_atomica
+from error_codes import ErrorCode
+from i18n import _
+from logger import app_logger
 
 try:
     import mutagen

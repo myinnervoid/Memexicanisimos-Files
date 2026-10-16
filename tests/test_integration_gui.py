@@ -3,12 +3,12 @@ Modulo test_integration_gui.py - Pruebas de Integración GUI + Backend (T3.2).
 """
 
 import tempfile
+import tkinter as tk
 import unittest
 from pathlib import Path
-import tkinter as tk
 
 from app_types import ServiceResult
-from core import generar_plan_con_estructura, ejecutar_plan_con_modo
+from core import ejecutar_plan_con_modo, generar_plan_con_estructura
 from gui_wizard import WizardApp
 
 

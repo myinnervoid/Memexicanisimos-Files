@@ -8,14 +8,14 @@ Permite pausar, reanudar y auditar transferencias masivas en <destino>/.memex/ch
 - Detección de completado en O(1) con set en memoria.
 """
 
+import hashlib
 import json
 import os
-import hashlib
-from pathlib import Path
-from datetime import datetime
 import uuid
-from dataclasses import dataclass, asdict, field
-from typing import Optional, Set, Dict, Any, List
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 
 MAX_LEDGER_BYTES = 64 * 1024 * 1024  # 64 MB para activar compactación
 

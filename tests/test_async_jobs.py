@@ -7,14 +7,14 @@ tests/test_async_jobs.py - Pruebas completas del modelo asíncrono (Modelo B):
 - Recuperación de huérfanos con verificación de PID recycling.
 """
 
-import time
-import json
-import unittest
 import tempfile
+import time
+import unittest
 from pathlib import Path
+
+from services.job_worker import JobRegistry, JobState, JobWorkerManager
 from services.memex_config import MemexConfig
 from services.memex_service import MemexService
-from services.job_worker import JobState, JobRegistry, JobWorkerManager, _pid_sigue_vivo
 
 
 class TestAsyncJobs(unittest.TestCase):

@@ -2,10 +2,11 @@
 tests/test_memex_service.py - Pruebas unitarias completas de la capa de servicio MemexService.
 """
 
-import unittest
-import tempfile
 import json
+import tempfile
+import unittest
 from pathlib import Path
+
 from services.memex_config import MemexConfig
 from services.memex_service import MemexService
 

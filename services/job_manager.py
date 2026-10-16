@@ -7,12 +7,10 @@ Implementa la arquitectura dual:
 - Control de cancelación mediante archivo flag <destino>/.memex/jobs/{job_id}.cancel.
 """
 
-import os
 import json
-import time
-from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 JOBS_GLOBAL_FILE = Path("~/.memex/jobs.jsonl").expanduser()
 

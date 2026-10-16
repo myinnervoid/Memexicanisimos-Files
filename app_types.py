@@ -8,10 +8,9 @@ excepciones especializadas utilizadas por el Backend y Frontend.
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional, Any, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 
 from error_codes import ErrorCode
-
 
 # ==============================================================================
 # JERARQUÍA DE EXCEPCIONES PERSONALIZADAS (Recomendación Técnica b)

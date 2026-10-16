@@ -17,16 +17,16 @@ Tools expuestas:
 - memex_borrar_seguro: Eliminación protegida en sandbox estricto de servidor.
 """
 
-import sys
-import os
-import json
-import time
-import signal
-import threading
 import argparse
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
+import os
+import signal
+import sys
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # Agregar directorio raíz al sys.path para importar core y services
 RAIZ_APP = Path(__file__).resolve().parent.parent

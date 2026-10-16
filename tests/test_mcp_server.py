@@ -2,16 +2,17 @@
 tests/test_mcp_server.py - Pruebas completas del servidor MCP (stdio y HTTP con autenticación Bearer).
 """
 
-import unittest
-import tempfile
 import json
+import tempfile
 import threading
-import urllib.request
+import unittest
 import urllib.error
+import urllib.request
 from pathlib import Path
+
+from mcp.server import ejecutar_tool, modo_http
 from services.memex_config import MemexConfig
 from services.memex_service import MemexService
-from mcp.server import ejecutar_tool, modo_http
 
 
 class TestMCPServer(unittest.TestCase):
@@ -130,6 +131,7 @@ class TestMCPServer(unittest.TestCase):
         """Verifica que el servidor stdio maneja el handshake completo y retorna content[] válido."""
         import io
         import sys
+
         from mcp.server import modo_stdio
 
         # Simular secuencia real de cliente Claude Desktop:

@@ -11,14 +11,12 @@ Implementa una política estricta de mitigación de pérdida accidental de datos
 """
 
 import os
-import shutil
 from pathlib import Path
-from typing import Union, List, Dict, Any
+from typing import Union
 
 from app_types import ServiceResult
 from error_codes import ErrorCode
 from logger import app_logger
-from i18n import _
 
 RUTAS_PROHIBIDAS_COMO_SANDBOX = {
     Path("/").resolve(),

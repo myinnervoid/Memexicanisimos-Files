@@ -8,21 +8,21 @@ services/memex_service.py - Capa de Servicio Unificada para Agentes y MCP.
 - Auditoría con redacción de rutas privadas de usuario.
 """
 
-import os
-import json
-import time
-import random
 import hashlib
-from pathlib import Path
+import json
+import os
+import random
+import time
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Union
-from services.memex_config import MemexConfig
-from services.job_worker import JobState, JobRegistry, JobWorkerManager, _pid_start_time
+from pathlib import Path
+from typing import List, Optional
+
 from core.backup import clonar_carpeta, respaldo_inteligente_windows_linux
-from core.checkpoint import CheckpointLedger
-from core.security import borrar_seguro, validar_dentro_de_sandbox, SecuritySandboxError
-from core.locks import DestinationLock, LockError
+from core.locks import DestinationLock
+from core.security import SecuritySandboxError, borrar_seguro, validar_dentro_de_sandbox
 from logger import app_logger
+from services.job_worker import JobRegistry, JobState, JobWorkerManager, _pid_start_time
+from services.memex_config import MemexConfig
 
 
 class MemexService:
