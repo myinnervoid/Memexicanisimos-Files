@@ -1,17 +1,44 @@
-# Python temporales
-__pycache__/
-*.pyc
-*.pyo
-
-# Archivos de PyInstaller / Build pesados
+# Build artifacts
 build/
-dist/memexicanisimos-files
-dist/OrganizadorArchivos*
-dist/organizador_archivos*
+dist/
+*.spec.bak
 
-# Entornos virtuales
-venv/
+# Logs y artefactos de prueba
+fase_*.log
+iostat_*.log
+prueba_fuego_*.log
+prueba_fuego.sh
+monitor.py
+iostat_alt.sh
+sim.json
+
+# Runtime / estado
+.memex/
+*.memex.partial
+.memex.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
 .venv/
-
-# Backup temporales
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 backup_v1/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Documentación interna de auditoría de agentes y gobernanza
+AGENTS.md
+MANIFEST.md
+AUDIT_REPORT.md
+DECISIONS.md
+REPORTE_ENTREGA.md
+findings.md
+task_plan.md
+progress.md
+TRADEOFFS_MATRIX.md

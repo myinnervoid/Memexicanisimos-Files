@@ -13,17 +13,30 @@ from typing import Dict, List
 class AppConfig:
     """Rutas y parámetros de configuración centralizados del sistema."""
     APP_NAME = "Memexicanisimos Files"
-    APP_VERSION = "1.0"
+    APP_VERSION = "1.1.0"
 
-    # Directorio de usuario e historial
     HOME_DIR = Path.home()
-    CONFIG_FILE = HOME_DIR / ".organizador_config.json"
-    PERFILES_FILE = HOME_DIR / ".organizador_perfiles.json"
-    UNDO_FILE = HOME_DIR / ".organizador_undo.jsonl"
+
+    @staticmethod
+    def _resolver_ruta(nombre: str) -> Path:
+        import tempfile
+        p = Path.home() / nombre
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            with open(p, 'a', encoding="utf-8"):
+                pass
+            return p
+        except (OSError, PermissionError):
+            return Path(tempfile.gettempdir()) / nombre
+
+    CONFIG_FILE = _resolver_ruta(".organizador_config.json")
+    PERFILES_FILE = _resolver_ruta(".organizador_perfiles.json")
+    UNDO_FILE = _resolver_ruta(".organizador_undo.jsonl")
 
     # Timeouts y buffer
     BUFFER_SIZE = 8192  # 8 KB para cálculo MD5
     MAX_UNDO_HISTORY = 100
+    MAX_VERSIONES_HISTORIAL = 5
 
 
 # Diccionario Unificado de Categorías de Extensiones (ÚNICA FUENTE DE VERDAD)

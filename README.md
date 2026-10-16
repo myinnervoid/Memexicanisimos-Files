@@ -42,6 +42,15 @@ sudo mv memexicanisimos-files /usr/local/bin/
 ## 🌟 Características Principales
 
 - 🎯 **Análisis Inteligente de Destino**: Detecta automáticamente si la carpeta de destino ya cuenta con estructuras organizativas (`YYYY/MM`, extensión o por letra) para integrar archivos sin duplicar carpetas.
+- ⚡ **Motor Industrial v1.1 Streaming & Ledger**:
+  - Clonación masiva y respaldo $O(1)$ en memoria RAM constante (41-45 MB).
+  - Throughput de hasta **102.74 MB/s** en hardware USB 3.0 ext4.
+  - Checkpointing persistente en `.memex/checkpoint.jsonl` con reanudación determinista sin costo de re-escritura.
+  - Cancelación cooperativa limpia en $< 1$ s sin archivos `.partial` residuales.
+- 🔌 **Servidor MCP Nativo (Model Context Protocol)**:
+  - Soporte para **transporte stdio** (Claude Desktop, Cursor) y **HTTP Bearer** (n8n, APIs).
+  - Arquitectura **Modelo B asíncrono**: retorno inmediato `< 50 ms` con `job_id` y gestión en pool concurrente.
+  - Endpoint de telemetría `/notify` con rotación automática de logs.
 - ↩️ **Sistema Undo / Deshacer**: Revierte operaciones con registro atómico en formato **JSON Lines** (`~/.organizador_undo.jsonl`), soporte para simulación **Dry-Run** e historial de operaciones.
 - 📂 **Organización Flexible por 5 Criterios**:
   - Por **Fecha** (EXIF, Regex en nombre, o fecha del sistema `ctime`/`mtime`).

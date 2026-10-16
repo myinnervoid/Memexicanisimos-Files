@@ -15,9 +15,12 @@ from gui_wizard import WizardApp
 class TestIntegrationGUIBackend(unittest.TestCase):
 
     def setUp(self):
-        self.root = tk.Tk()
-        self.root.withdraw()
-        self.app = WizardApp(self.root)
+        try:
+            self.root = tk.Tk()
+            self.root.withdraw()
+            self.app = WizardApp(self.root)
+        except tk.TclError:
+            self.skipTest("Entorno sin display X disponible.")
 
         self.test_dir = tempfile.mkdtemp()
         self.origen = Path(self.test_dir) / "origen"

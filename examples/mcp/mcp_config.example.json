@@ -1,0 +1,9 @@
+{
+  "sandbox_borrado": "/tmp/memex_staging",
+  "perfiles_permitidos": ["Documentos", "Imágenes", "Vídeos", "Música"],
+  "destinos_permitidos": ["/media/**", "/mnt/**", "/run/media/**"],
+  "token": "REEMPLAZA_CON_TOKEN_DE_64_CARACTERES",
+  "bind": "127.0.0.1",
+  "puerto": 7801,
+  "audit_log": "~/.memex/mcp_audit.jsonl"
+}

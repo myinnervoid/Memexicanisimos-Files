@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint con ruff
+        run: ruff check core/ services/ mcp/ tests/ cli.py config.py logger.py
+
+      - name: Tests unitarios
+        run: pytest -v --ignore=tests/test_integration_gui.py
+
+      - name: Tests con dependencias opcionales
+        run: |
+          pip install -e ".[media,logging]"
+          pytest -v --ignore=tests/test_integration_gui.py
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install -e ".[dev,media,logging]"
+          pip install pytest-cov
+          pytest --cov=core --cov=services --cov=mcp --cov-report=term-missing --ignore=tests/test_integration_gui.py

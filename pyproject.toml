@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "memexicanisimos-files"
+version = "1.1.0"
+description = "Motor de transferencia masiva, respaldo incremental y desduplicación con servidor MCP para humanos y agentes de IA."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "myinnervoid" }]
+keywords = ["backup", "mcp", "cli", "deduplication", "ai-agents", "checkpoint", "resume"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Archiving :: Backup",
+    "Topic :: System :: Filesystems",
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+media = ["mutagen", "Pillow"]
+logging = ["loguru"]
+dev = ["pytest", "pytest-cov", "ruff", "mypy"]
+all = ["mutagen", "Pillow", "loguru", "pytest", "pytest-cov", "ruff", "mypy"]
+
+[project.scripts]
+memex = "cli:main"
+memex-mcp = "mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/myinnervoid/Memexicanisimos-Files"
+Repository = "https://github.com/myinnervoid/Memexicanisimos-Files"
+Issues = "https://github.com/myinnervoid/Memexicanisimos-Files/issues"
+Releases = "https://github.com/myinnervoid/Memexicanisimos-Files/releases"
+
+[tool.setuptools]
+# Módulos sueltos en la raíz
+py-modules = ["cli", "config", "logger", "error_codes", "app_types", "i18n", "core_legacy"]
+# Paquetes
+packages = ["core", "services", "mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+exclude = ["backup_v1", "legacy", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_unused_ignores = true
+ignore_missing_imports = true
+exclude = ["backup_v1", "legacy", "build", "dist"]

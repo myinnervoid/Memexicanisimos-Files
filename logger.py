@@ -44,23 +44,47 @@ class AppLogger:
     """Administrador centralizado de Logs para toda la aplicación."""
 
     def __init__(self):
-        self.log_file = AppConfig.HOME_DIR / ".organizador_app.log"
+        self.log_file = self._resolver_log_path()
         self._setup_logging()
 
+    @staticmethod
+    def _resolver_log_path() -> Optional[Path]:
+        import tempfile
+        candidatos = [
+            AppConfig.HOME_DIR / ".organizador_app.log",
+            Path(tempfile.gettempdir()) / "memexicanisimos_app.log",
+        ]
+        for p in candidatos:
+            try:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                with open(p, 'a', encoding="utf-8"):
+                    pass
+                return p
+            except (OSError, PermissionError):
+                continue
+        return None
+
     def _setup_logging(self):
+        import os
+        stream_consola = sys.stderr if os.environ.get("MEMEX_MCP_STDIO") == "1" else sys.stdout
+
         if HAS_LOGURU:
             _loguru_logger.remove()
-            # Consola
-            _loguru_logger.add(sys.stdout, level="INFO", format="<green>{time:HH:mm:ss}</green> | <level>{level:10}</level> | <cyan>{message}</cyan>")
-            # Archivo rotativo en Home (Max 10MB, retencion 10 dias)
-            _loguru_logger.add(
-                str(self.log_file),
-                rotation="10 MB",
-                retention="10 days",
-                level="DEBUG",
-                encoding="utf-8",
-                enqueue=True
-            )
+            # Consola (stderr si estamos en MCP stdio para no corromper JSON-RPC)
+            _loguru_logger.add(stream_consola, level="INFO", format="<green>{time:HH:mm:ss}</green> | <level>{level:10}</level> | <cyan>{message}</cyan>")
+            # Archivo rotativo seguro
+            if self.log_file is not None:
+                try:
+                    _loguru_logger.add(
+                        str(self.log_file),
+                        rotation="10 MB",
+                        retention="10 days",
+                        level="DEBUG",
+                        encoding="utf-8",
+                        enqueue=True
+                    )
+                except Exception:
+                    _loguru_logger.warning("No se pudo abrir archivo de log; solo consola.")
             self.logger = _loguru_logger
         else:
             # Fallback a logging estándar de Python
@@ -71,22 +95,26 @@ class AppLogger:
             # Formateador
             fmt = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 
-            # Stream Handler (Consola)
-            sh = logging.StreamHandler(sys.stdout)
+            # Stream Handler (Consola / stderr si estamos en MCP stdio)
+            sh = logging.StreamHandler(stream_consola)
             sh.setLevel(logging.INFO)
             sh.setFormatter(fmt)
             self.std_logger.addHandler(sh)
 
-            # Rotating File Handler
-            rfh = RotatingFileHandler(
-                str(self.log_file),
-                maxBytes=10 * 1024 * 1024,
-                backupCount=5,
-                encoding="utf-8"
-            )
-            rfh.setLevel(logging.DEBUG)
-            rfh.setFormatter(fmt)
-            self.std_logger.addHandler(rfh)
+            # Rotating File Handler seguro
+            if self.log_file is not None:
+                try:
+                    rfh = RotatingFileHandler(
+                        str(self.log_file),
+                        maxBytes=10 * 1024 * 1024,
+                        backupCount=5,
+                        encoding="utf-8"
+                    )
+                    rfh.setLevel(logging.DEBUG)
+                    rfh.setFormatter(fmt)
+                    self.std_logger.addHandler(rfh)
+                except Exception:
+                    self.std_logger.warning("Sin archivo de log; solo consola.")
 
             self.logger = self.std_logger
 
@@ -128,6 +156,12 @@ class AppLogger:
             self.logger.error(msg)
         else:
             self.logger.error(msg, exc_info=exc_info)
+
+    def reconfigurar_para_stdio(self):
+        """Fuerza la redirección del log de consola a stderr para no contaminar JSON-RPC en stdout."""
+        import os
+        os.environ["MEMEX_MCP_STDIO"] = "1"
+        self._setup_logging()
 
 
 # Instancia única reutilizable
