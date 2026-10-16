@@ -12,13 +12,13 @@ Implementa una política estricta de mitigación de pérdida accidental de datos
 
 import os
 from pathlib import Path
-from typing import Union
+from typing import Union, Set
 
 from app_types import ServiceResult
 from error_codes import ErrorCode
 from logger import app_logger
 
-RUTAS_PROHIBIDAS_COMO_SANDBOX = {
+RUTAS_PROHIBIDAS_COMO_SANDBOX: Set[Path] = {
     Path("/").resolve(),
     Path("/root").resolve(),
     Path("/home").resolve(),
@@ -36,13 +36,60 @@ class SecuritySandboxError(Exception):
     pass
 
 
+def resolver_ruta_segura(ruta: Union[str, Path]) -> Path:
+    """
+    Resuelve una ruta de forma canónica y segura (path sanitization & safe path resolution).
+    
+    Aplica os.path.realpath() para resolver enlaces simbólicos y normalizar la ruta,
+    luego la convierte a Path y llama a resolve() para una resolución final absoluta.
+    
+    Args:
+        ruta: La ruta original en formato cadena o Path.
+        
+    Returns:
+        Path: El objeto Path absoluto, sin enlaces simbólicos y normalizado.
+    """
+    return Path(os.path.realpath(ruta)).resolve()
+
+def validar_traversal(p_obj: Path, p_sandbox: Path) -> None:
+    """
+    Verifica que el objeto resida estrictamente dentro del sandbox (traversal validation).
+    
+    Lanza una excepción si hay un intento de Directory Traversal o si el objeto 
+    no es un descendiente directo/indirecto del área autorizada.
+    
+    Args:
+        p_obj: Path canónico del objetivo.
+        p_sandbox: Path canónico del área autorizada.
+        
+    Raises:
+        SecuritySandboxError: Si el objetivo no reside dentro del área autorizada.
+    """
+    try:
+        p_obj.relative_to(p_sandbox)
+    except ValueError:
+        raise SecuritySandboxError(
+            f"Violación de Sandbox: '{p_obj}' no reside dentro del área autorizada '{p_sandbox}'."
+        )
+
 def validar_dentro_de_sandbox(objetivo: Union[str, Path], area_autorizada: Union[str, Path]) -> Path:
     """
     Valida canónicamente que el objetivo resida estrictamente dentro del área autorizada.
     Retorna el Path canónico resuelto del objetivo si es válido, o lanza SecuritySandboxError.
+    
+    Args:
+        objetivo: La ruta del archivo o directorio a evaluar.
+        area_autorizada: La ruta raíz que actúa como sandbox.
+        
+    Returns:
+        Path: El Path canónico resuelto del objetivo validado.
+        
+    Raises:
+        SecuritySandboxError: Si se violan las políticas de aislamiento.
+        FileNotFoundError: Si el objetivo no existe.
     """
-    p_sandbox = Path(os.path.realpath(area_autorizada)).resolve()
-    p_obj = Path(os.path.realpath(objetivo)).resolve()
+    p_sandbox: Path = resolver_ruta_segura(area_autorizada)
+    p_obj: Path = resolver_ruta_segura(objetivo)
 
     # (1) Verificar que el área autorizada no sea una ruta crítica del sistema
     if p_sandbox in RUTAS_PROHIBIDAS_COMO_SANDBOX:
@@ -61,12 +108,7 @@ def validar_dentro_de_sandbox(objetivo: Union[str, Path], area_autorizada: Union
         )
 
     # (4) Verificar descendencia estricta (p_sandbox debe estar en los ancestros de p_obj)
-    try:
-        p_obj.relative_to(p_sandbox)
-    except ValueError:
-        raise SecuritySandboxError(
-            f"Violación de Sandbox: '{p_obj}' no reside dentro del área autorizada '{p_sandbox}'."
-        )
+    validar_traversal(p_obj, p_sandbox)
 
     return p_obj
 
@@ -96,11 +138,11 @@ def borrar_seguro(
             data={"simulado": True, "eliminado": str(p_obj), "tipo": tipo}
         )
 
-    eliminados = 0
-    errores = 0
+    eliminados: int = 0
+    errores: int = 0
 
     try:
-        p_sandbox = Path(os.path.realpath(area_autorizada)).resolve()
+        p_sandbox: Path = resolver_ruta_segura(area_autorizada)
         if p_obj.is_symlink() or p_obj.is_file():
             p_obj.unlink()
             eliminados = 1
@@ -116,7 +158,7 @@ def borrar_seguro(
                             eliminados += 1
                         else:
                             # Re-verificar que el realpath siga dentro del sandbox
-                            if Path(os.path.realpath(item_file)).resolve().is_relative_to(p_sandbox):
+                            if resolver_ruta_segura(item_file).is_relative_to(p_sandbox):
                                 item_file.unlink()
                                 eliminados += 1
                             else:
@@ -132,7 +174,7 @@ def borrar_seguro(
                             item_dir.unlink()
                             eliminados += 1
                         else:
-                            if Path(os.path.realpath(item_dir)).resolve().is_relative_to(p_sandbox):
+                            if resolver_ruta_segura(item_dir).is_relative_to(p_sandbox):
                                 item_dir.rmdir()
                                 eliminados += 1
                             else:
