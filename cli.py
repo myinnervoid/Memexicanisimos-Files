@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from app_types import ServiceResult, RutaNoValidaError
+from app_types import ServiceResult, ApiResponse, RutaNoValidaError
 from core import generar_plan_con_estructura, ejecutar_plan_con_modo
 from error_codes import ErrorCode
 
@@ -90,7 +90,7 @@ def main() -> int:
     print(f"⚙️ Modo de operacion: [{args.modo.upper()}]\n")
 
     try:
-        res_plan: ServiceResult = generar_plan_con_estructura(
+        res_plan: ApiResponse = generar_plan_con_estructura(
             origen=ruta_origen,
             destino_base=ruta_destino,
             extensiones=lista_extensiones,
@@ -127,7 +127,7 @@ def main() -> int:
             return 0
 
         print("🚀 EJECUTANDO OPERACIONES EN DISCO...")
-        res_ejec: ServiceResult = ejecutar_plan_con_modo(
+        res_ejec: ApiResponse = ejecutar_plan_con_modo(
             planes=planes,
             modo=args.modo.capitalize(),
             callback_progreso=lambda i, total, nom: print(f"[{i}/{total}] Procesando: {nom}")
