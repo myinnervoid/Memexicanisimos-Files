@@ -18,7 +18,7 @@ from typing import List, Dict, Optional, Union, Tuple, Any, Callable
 
 # Importaciones del proyecto
 from app_types import (
-    ServiceResult, PlanArchivo, FiltrosAvanzados, EstructuraConfig, UndoRecord,
+    ServiceResult, ApiResponse, PlanArchivo, FiltrosAvanzados, EstructuraConfig, UndoRecord,
     RutaNoValidaError, FechaNoEncontradaError, DiskFullError, PermissionDeniedError, FileLockedError
 )
 from error_codes import ErrorCode
@@ -49,14 +49,14 @@ def obtener_archivos(
     usar_creacion: bool = False,
     incluir_ocultos: bool = False,
     patron_regex: Optional[str] = None,
-) -> ServiceResult:
+) -> ApiResponse:
     """Obtiene archivos en la ruta filtrados por múltiples criterios."""
     origen_path = Path(ruta_origen)
 
     if not origen_path.exists() or not origen_path.is_dir():
         msg = _("La ruta de origen no existe o no es un directorio válido.")
         app_logger.warning(f"{msg}: {ruta_origen}")
-        return ServiceResult(success=False, error=msg, error_code=ErrorCode.ERR_ORIGIN_NOT_FOUND)
+        return ApiResponse(success=False, error=msg, error_code=ErrorCode.ERR_ORIGIN_NOT_FOUND)
 
     exts_norm = None
     if extensiones_permitidas:
@@ -69,7 +69,7 @@ def obtener_archivos(
         except re.error as err:
             msg = f"{_('Patrón Regex inválido')}: {err}"
             app_logger.error(msg)
-            return ServiceResult(success=False, error=msg, error_code=ErrorCode.ERR_REGEX_INVALID)
+            return ApiResponse(success=False, error=msg, error_code=ErrorCode.ERR_REGEX_INVALID)
 
     fecha_limite = None
     if dias_antiguedad is not None and dias_antiguedad > 0:
@@ -101,7 +101,7 @@ def obtener_archivos(
         iterador = _escanear_directorio(str(origen_path))
     except Exception as e:
         app_logger.error(f"Error inicializando escáner en {origen_path}: {e}")
-        return ServiceResult(success=False, error=_("Error al acceder a la carpeta."), error_code=ErrorCode.ERR_PERMISSION_DENIED)
+        return ApiResponse(success=False, error=_("Error al acceder a la carpeta."), error_code=ErrorCode.ERR_PERMISSION_DENIED)
 
     for elemento in iterador:
         try:
@@ -137,7 +137,7 @@ def obtener_archivos(
             app_logger.warning(f"Error omitiendo elemento '{elemento.name}': {e}")
 
     app_logger.info(f"Escaneo completado: {len(archivos_encontrados)} archivos encontrados en '{origen_path}'")
-    return ServiceResult(success=True, data=archivos_encontrados)
+    return ApiResponse(success=True, data=archivos_encontrados)
 
 
 def obtener_categoria(extension: Union[str, Path]) -> str:
@@ -293,7 +293,7 @@ def generar_plan_con_estructura(
     usar_hash_duplicados: bool = False,
     estructura: Optional[Dict[str, Any]] = None,
     filtros_avanzados: Optional[Dict[str, Any]] = None
-) -> ServiceResult:
+) -> ApiResponse:
     filt_av = filtros_avanzados or {}
 
     res_archivos = obtener_archivos(
@@ -333,7 +333,7 @@ def generar_plan_con_estructura(
         planes = detectar_duplicados_por_hash(planes, destino_base, usar_hash=True)
 
     app_logger.info(f"Plan generado: {len(planes)} operaciones planificadas.")
-    return ServiceResult(success=True, data=planes)
+    return ApiResponse(success=True, data=planes)
 
 
 def detectar_duplicados_por_nombre(planes: List[Dict[str, Any]], carpeta_raiz_destino: Union[str, Path]) -> List[Dict[str, Any]]:
@@ -409,10 +409,10 @@ def ejecutar_plan_con_modo(
     modo: str = "Copiar",
     callback_progreso: Optional[Callable[[int, int, str], None]] = None,
     cancelar_flag: Optional[Callable[[], bool]] = None,
-) -> ServiceResult:
+) -> ApiResponse:
     """Ejecuta el plan registrando eventos en app_logger."""
     if not planes:
-        return ServiceResult(success=True, data="No hay planes para ejecutar.")
+        return ApiResponse(success=True, data="No hay planes para ejecutar.")
 
     exitos = 0
     errores = 0
@@ -449,7 +449,7 @@ def ejecutar_plan_con_modo(
                     f"Espacio insuficiente en disco destino '{check_dir}': "
                     f"requerido={bytes_requeridos}B, libre={espacio_libre}B"
                 )
-                return ServiceResult.fail(
+                return ApiResponse.fail(
                     error=_("Espacio insuficiente en el disco de destino. Requerido: {req:.2f} MB, Disponible: {disp:.2f} MB").format(
                         req=bytes_requeridos / (1024 * 1024),
                         disp=espacio_libre / (1024 * 1024)
@@ -468,7 +468,7 @@ def ejecutar_plan_con_modo(
                 registrar_operacion_undo(buffer_undo)
                 buffer_undo.clear()
             app_logger.warning(_("Ejecución cancelada por el usuario."))
-            return ServiceResult(
+            return ApiResponse(
                 success=False,
                 error=_("Operación cancelada por el usuario."),
                 error_code=ErrorCode.ERR_EXECUTION_CANCELLED,
@@ -544,7 +544,7 @@ def ejecutar_plan_con_modo(
 
     app_logger.info(f"Ejecución completada: {exitos} exitosos | {errores} errores.")
 
-    return ServiceResult(
+    return ApiResponse(
         success=(errores == 0),
         data={"exitos": exitos, "errores": errores, "logs": logs},
         error=_("Proceso finalizado con errores.") if errores > 0 else None,
@@ -584,14 +584,14 @@ def obtener_historial_undo(limite: int = 100, log_file_path: Optional[Path] = No
     return list(dq)
 
 
-def deshacer_n_operaciones(n: int = 1, dry_run: bool = False, log_file_path: Optional[Path] = None) -> ServiceResult:
+def deshacer_n_operaciones(n: int = 1, dry_run: bool = False, log_file_path: Optional[Path] = None) -> ApiResponse:
     path = log_file_path or AppConfig.UNDO_FILE
     if not path.exists():
-        return ServiceResult(success=False, error=_("No existe historial Undo."), error_code=ErrorCode.ERR_UNDO_EMPTY)
+        return ApiResponse(success=False, error=_("No existe historial Undo."), error_code=ErrorCode.ERR_UNDO_EMPTY)
 
     historial = obtener_historial_undo(limite=999999, log_file_path=path)
     if not historial:
-        return ServiceResult(success=False, error=_("El historial Undo está vacío."), error_code=ErrorCode.ERR_UNDO_EMPTY)
+        return ApiResponse(success=False, error=_("El historial Undo está vacío."), error_code=ErrorCode.ERR_UNDO_EMPTY)
 
     a_revertir = historial[-n:]
     restantes = historial[:-n]
@@ -641,7 +641,7 @@ def deshacer_n_operaciones(n: int = 1, dry_run: bool = False, log_file_path: Opt
         except Exception as e:
             app_logger.error(f"Fallo al actualizar de forma atómica el historial Undo: {e}")
 
-    return ServiceResult(success=(errores == 0), data={"exitos": exitos, "errores": errores, "logs": logs})
+    return ApiResponse(success=(errores == 0), data={"exitos": exitos, "errores": errores, "logs": logs})
 
 
 def clonar_carpeta(
@@ -650,22 +650,22 @@ def clonar_carpeta(
     incremental: bool = False,
     callback_progreso: Optional[Callable[[int, int, int, int, str], None]] = None,
     cancelar_flag: Optional[Callable[[], bool]] = None
-) -> ServiceResult:
+) -> ApiResponse:
     p_orig = Path(origen)
     p_dest = Path(destino)
 
     if not p_orig.exists() or not p_orig.is_dir():
-        return ServiceResult(success=False, error=_("La ruta de origen no es válida."), error_code=ErrorCode.ERR_ORIGIN_NOT_FOUND)
+        return ApiResponse(success=False, error=_("La ruta de origen no es válida."), error_code=ErrorCode.ERR_ORIGIN_NOT_FOUND)
 
     try:
         archivos = [p for p in p_orig.rglob('*') if p.is_file()]
     except Exception as e:
         app_logger.error(f"Fallo escaneando archivos en '{p_orig}': {e}")
-        return ServiceResult(success=False, error=str(e), error_code=ErrorCode.ERR_IO_FAILURE)
+        return ApiResponse(success=False, error=str(e), error_code=ErrorCode.ERR_IO_FAILURE)
 
     total = len(archivos)
     if total == 0:
-        return ServiceResult(success=True, data={"copiados": 0, "omitidos": 0, "errores": 0, "bytes_copiados": 0})
+        return ApiResponse(success=True, data={"copiados": 0, "omitidos": 0, "errores": 0, "bytes_copiados": 0})
 
     # Calcular tamaño total en bytes para porcentaje de avance preciso
     bytes_totales = 0
@@ -687,7 +687,7 @@ def clonar_carpeta(
                 f"Espacio insuficiente en disco destino '{check_dest}' para clonar: "
                 f"requerido={bytes_totales}B, libre={espacio_libre}B"
             )
-            return ServiceResult.fail(
+            return ApiResponse.fail(
                 error=_("Espacio insuficiente en el disco de destino para clonar. Requerido: {req:.2f} MB, Disponible: {disp:.2f} MB").format(
                     req=bytes_totales / (1024 * 1024),
                     disp=espacio_libre / (1024 * 1024)
@@ -704,7 +704,7 @@ def clonar_carpeta(
 
     for i, arch in enumerate(archivos, start=1):
         if cancelar_flag and cancelar_flag():
-            return ServiceResult(success=False, error=_("Clonación cancelada."), error_code=ErrorCode.ERR_EXECUTION_CANCELLED)
+            return ApiResponse(success=False, error=_("Clonación cancelada."), error_code=ErrorCode.ERR_EXECUTION_CANCELLED)
 
         tamano_arch = 0
         try:
@@ -737,7 +737,7 @@ def clonar_carpeta(
     if callback_progreso:
         callback_progreso(total, total, bytes_totales, bytes_totales, "Completado")
 
-    return ServiceResult(success=(errores == 0), data={"copiados": exitos, "omitidos": omitidos, "errores": errores, "bytes_copiados": bytes_copiados})
+    return ApiResponse(success=(errores == 0), data={"copiados": exitos, "omitidos": omitidos, "errores": errores, "bytes_copiados": bytes_copiados})
 
 
 def analizar_estructura_destino(destino_base: Union[str, Path]) -> Dict[str, Any]:
@@ -830,14 +830,14 @@ def respaldo_inteligente_windows_linux(
     destino: Union[str, Path],
     callback_progreso: Optional[Callable[[int, int, int, int, str], None]] = None,
     cancelar_flag: Optional[Callable[[], bool]] = None
-) -> ServiceResult:
+) -> ApiResponse:
     """
     Respalda perfiles estándar (Documentos, Escritorio, etc.) omitiendo cachés y basura.
     """
     p_dest = Path(destino)
 
     if not p_dest.exists() or not p_dest.is_dir():
-        return ServiceResult(success=False, error=_("La ruta de destino no es válida."), error_code=ErrorCode.ERR_DESTINATION_NOT_FOUND)
+        return ApiResponse(success=False, error=_("La ruta de destino no es válida."), error_code=ErrorCode.ERR_DESTINATION_NOT_FOUND)
 
     carpetas_usuario = {d['nombre']: Path(d['ruta']) for d in detectar_carpetas_usuario()}
     carpetas_a_respaldar = []
@@ -847,7 +847,7 @@ def respaldo_inteligente_windows_linux(
             carpetas_a_respaldar.append(carpetas_usuario[perfil])
 
     if not carpetas_a_respaldar:
-        return ServiceResult(success=False, error=_("No se encontraron los perfiles seleccionados o están vacíos."), error_code=ErrorCode.ERR_ORIGIN_NOT_FOUND)
+        return ApiResponse(success=False, error=_("No se encontraron los perfiles seleccionados o están vacíos."), error_code=ErrorCode.ERR_ORIGIN_NOT_FOUND)
 
     # Filtros inteligentes
     patrones_basura = [
@@ -883,7 +883,7 @@ def respaldo_inteligente_windows_linux(
 
     total = len(archivos_totales)
     if total == 0:
-        return ServiceResult(success=True, data={"copiados": 0, "omitidos": 0, "errores": 0, "bytes_copiados": 0})
+        return ApiResponse(success=True, data={"copiados": 0, "omitidos": 0, "errores": 0, "bytes_copiados": 0})
 
     bytes_totales = sum(a.stat().st_size for a in archivos_totales if a.exists())
 
@@ -894,7 +894,7 @@ def respaldo_inteligente_windows_linux(
     try:
         espacio_libre = shutil.disk_usage(str(check_dest)).free
         if bytes_totales > 0 and (bytes_totales + 20 * 1024 * 1024) > espacio_libre:
-            return ServiceResult.fail(
+            return ApiResponse.fail(
                 error=_("Espacio insuficiente en el disco de destino para el respaldo. Requerido: {req:.2f} MB, Disponible: {disp:.2f} MB").format(
                     req=bytes_totales / (1024 * 1024),
                     disp=espacio_libre / (1024 * 1024)
@@ -956,7 +956,7 @@ def respaldo_inteligente_windows_linux(
             app_logger.warning(f"Error copiando '{a}' en respaldo: {e}")
             errores += 1
 
-    return ServiceResult(success=True, data={
+    return ApiResponse(success=True, data={
         "copiados": copiados,
         "omitidos": omitidos,
         "errores": errores,
