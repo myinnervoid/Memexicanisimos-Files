@@ -43,12 +43,35 @@ DIRECTORIOS_OMITIR = {
 
 
 def _es_basura(nombre: str) -> bool:
+    """
+    Determina si un nombre de archivo corresponde a un archivo temporal o basura.
+
+    Compara el nombre del archivo con una lista predefinida de expresiones regulares
+    (`PATRONES_BASURA`) que identifican archivos no deseados (ej. `.tmp`, `.bak`, `Thumbs.db`).
+
+    Args:
+        nombre (str): El nombre del archivo a evaluar.
+
+    Returns:
+        bool: True si el archivo es considerado basura, False en caso contrario.
+    """
     return any(p.search(nombre) for p in PATRONES_BASURA)
 
 
 def detectar_carpetas_usuario() -> List[Dict[str, str]]:
-    home = Path.home()
-    carpetas_std = [
+    """
+    Detecta y retorna las rutas de las carpetas estándar del perfil del usuario actual.
+
+    Busca directorios comunes como 'Documentos', 'Imágenes', 'Música', etc., tanto en
+    español como en inglés, verificando su existencia en el sistema de archivos local.
+
+    Returns:
+        List[Dict[str, str]]: Una lista de diccionarios, donde cada diccionario contiene:
+            - 'nombre' (str): El nombre identificativo de la carpeta (ej. "Documentos").
+            - 'ruta' (str): La ruta absoluta hacia la carpeta en el sistema.
+    """
+    home: Path = Path.home()
+    carpetas_std: List[tuple[str, Path]] = [
         ("Documentos", home / "Documentos"), ("Imágenes", home / "Imágenes"),
         ("Música", home / "Música"), ("Descargas", home / "Descargas"),
         ("Vídeos", home / "Vídeos"), ("Escritorio", home / "Escritorio"),
@@ -59,9 +82,23 @@ def detectar_carpetas_usuario() -> List[Dict[str, str]]:
 
 
 def detectar_dispositivos_multimedia() -> List[Dict[str, str]]:
-    dispositivos = []
-    usuario = os.environ.get('USER', '')
-    rutas = [
+    """
+    Escanea el sistema en busca de dispositivos multimedia extraíbles montados.
+
+    Inspecciona rutas comunes de montaje en sistemas Unix (ej. `/media`, `/run/media`)
+    para localizar teléfonos Android (MTP), cámaras o memorias USB. Extrae información
+    sobre el tipo de dispositivo y el espacio libre disponible.
+
+    Returns:
+        List[Dict[str, str]]: Una lista de diccionarios con información de los dispositivos:
+            - 'etiqueta' (str): El nombre o etiqueta del volumen/dispositivo montado.
+            - 'ruta' (str): La ruta absoluta donde se encuentra montado el dispositivo.
+            - 'tipo' (str): Categoría inferida del dispositivo (ej. "USB Extraíble").
+            - 'espacio' (str): Descripción del espacio libre disponible (ej. "15.2 GB libres").
+    """
+    dispositivos: List[Dict[str, str]] = []
+    usuario: str = os.environ.get('USER', '')
+    rutas: List[Optional[Path]] = [
         Path("/media"), Path(f"/media/{usuario}"), Path(f"/run/media/{usuario}"),
         Path(f"/run/user/{os.getuid()}/gvfs") if hasattr(os, 'getuid') else None
     ]
@@ -70,8 +107,8 @@ def detectar_dispositivos_multimedia() -> List[Dict[str, str]]:
             try:
                 for item in r.iterdir():
                     if item.is_dir():
-                        tipo = "Teléfono Android / Cámara MTP" if ("mtp" in item.name.lower() or "gphoto2" in item.name.lower()) else "USB Extraíble"
-                        espacio = "Desconocido"
+                        tipo: str = "Teléfono Android / Cámara MTP" if ("mtp" in item.name.lower() or "gphoto2" in item.name.lower()) else "USB Extraíble"
+                        espacio: str = "Desconocido"
                         try:
                             st = shutil.disk_usage(item)
                             espacio = f"{st.free / (1024 ** 3):.1f} GB libres"
@@ -86,14 +123,24 @@ def detectar_dispositivos_multimedia() -> List[Dict[str, str]]:
 
 def _validar_seguridad_rutas(origen: Path, destino: Path) -> Optional[ServiceResult]:
     """
-    Validaciones de seguridad vitales:
-    1. Origen == Destino o Destino dentro de Origen (prevención de bucle infinito).
-    2. Destino con permisos de escritura.
-    3. Advertencia si se corre como root (sudo).
-    4. Detección de desmontaje de dispositivo en /media o /mnt.
+    Realiza validaciones críticas de seguridad sobre las rutas de origen y destino antes de operar.
+
+    Verificaciones incluidas:
+    1. Prevención de bucles recursivos: Asegura que el destino no sea igual al origen ni esté dentro de él.
+    2. Detección de dispositivos desmontados silenciosamente en rutas estándar (como `/media`).
+    3. Comprobación de permisos de escritura efectivos en el directorio destino.
+    4. Emisión de advertencias si el proceso corre con privilegios elevados (root).
+
+    Args:
+        origen (Path): La ruta del directorio fuente.
+        destino (Path): La ruta del directorio objetivo.
+
+    Returns:
+        Optional[ServiceResult]: Retorna un objeto `ServiceResult` configurado como fallo
+        si se detecta una violación de seguridad, o `None` si las rutas son seguras y válidas.
     """
-    orig_res = origen.resolve()
-    dest_res = destino.resolve()
+    orig_res: Path = origen.resolve()
+    dest_res: Path = destino.resolve()
 
     # 1. Bucle infinito: Origen == Destino o Destino es descendiente de Origen
     if orig_res == dest_res:
@@ -132,7 +179,7 @@ def _validar_seguridad_rutas(origen: Path, destino: Path) -> Optional[ServiceRes
             pass
 
     # 3. Permisos de escritura en destino
-    check_w = dest_res
+    check_w: Path = dest_res
     while not check_w.exists() and check_w != check_w.parent:
         check_w = check_w.parent
     if not os.access(check_w, os.W_OK):
