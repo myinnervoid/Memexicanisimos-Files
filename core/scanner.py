@@ -13,13 +13,22 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterator, List, Optional, Set, Tuple
+from typing import Callable, Iterator, List, Optional, Set, Tuple, Union
 
 from logger import app_logger
 
 
 @dataclass(frozen=True, slots=True)
 class FileEntry:
+    """
+    Represents a file discovered during scanning with its essential metadata.
+
+    Attributes:
+        path (Path): The absolute or relative path to the file.
+        size (int): The size of the file in bytes.
+        mtime_ns (int): The modification time of the file in nanoseconds since the epoch.
+        ctime (float): The creation time (or metadata change time on Unix) of the file in seconds since the epoch. Defaults to 0.0.
+    """
     path: Path
     size: int
     mtime_ns: int
@@ -27,7 +36,7 @@ class FileEntry:
 
 
 def iterar_archivos(
-    ruta_origen,
+    ruta_origen: Union[str, Path],
     extensiones_permitidas: Optional[List[str]] = None,
     incluir_subcarpetas: bool = True,
     tamano_min_bytes: Optional[int] = None,
@@ -40,8 +49,27 @@ def iterar_archivos(
     excluir_ocultos_dir: bool = False,
 ) -> Iterator[FileEntry]:
     """
-    Generador puro. Un solo recorrido. Sin listas intermedias.
-    `excluir_directorios` permite podar subárboles completos (node_modules, .cache, AppData).
+    Yields files from a directory tree matching the specified criteria.
+
+    This function acts as a pure generator, avoiding intermediate lists in memory.
+    It performs an iterative Depth-First Search (DFS) and implements early tree pruning
+    by skipping excluded directories (e.g., node_modules, .cache) without descending into them.
+
+    Args:
+        ruta_origen (Union[str, Path]): The starting directory path for the scan.
+        extensiones_permitidas (Optional[List[str]]): A list of allowed file extensions (e.g., ['.txt', 'pdf']). Defaults to None.
+        incluir_subcarpetas (bool): If True, recursively scans subdirectories. Defaults to True.
+        tamano_min_bytes (Optional[int]): Minimum file size in bytes to include. Defaults to None.
+        tamano_max_bytes (Optional[int]): Maximum file size in bytes to include. Defaults to None.
+        dias_antiguedad (Optional[int]): Only include files modified/created in the last `dias_antiguedad` days. Defaults to None.
+        usar_creacion (bool): If True, uses creation time for `dias_antiguedad` check; otherwise uses modification time. Defaults to False.
+        incluir_ocultos (bool): If True, includes files starting with a dot. Defaults to False.
+        patron_regex (Optional[str]): A regular expression pattern that the file name must match. Defaults to None.
+        excluir_directorios (Optional[Set[str]]): A set of directory names to skip completely. Defaults to None.
+        excluir_ocultos_dir (bool): If True, skips directories starting with a dot. Defaults to False.
+
+    Yields:
+        Iterator[FileEntry]: An iterator of FileEntry objects for each matching file.
     """
     origen_path = Path(ruta_origen)
     if not origen_path.is_dir():
